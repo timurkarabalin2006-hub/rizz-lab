@@ -22,6 +22,7 @@
     history: [],
     messageLogs: [],
     usedReplies: new Set(),
+    lastTopic: null,
     isTyping: false,
     ended: false,
     diffFilter: 'all',
@@ -364,6 +365,7 @@
     state.history = [];
     state.messageLogs = [];
     state.usedReplies = new Set();
+    state.lastTopic = null;
     state.isTyping = false;
     state.ended = false;
 
@@ -435,8 +437,10 @@
       state.sympathy,
       state.turn,
       MAX_TURNS,
-      state.usedReplies
+      state.usedReplies,
+      { lastTopic: state.lastTopic }
     );
+    state.lastTopic = nluResult.nextTopic || null;
 
     let replyText = nluResult.text;
     const forceEnd = nluResult.forceEnd;

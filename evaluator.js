@@ -3,7 +3,7 @@ window.RizzEvaluator = {
     'привет как дела', 'как дела', 'что делаешь', 'чем занимаешься',
     'познакомимся', 'давай знакомиться', 'привет красотка', 'красавица',
     'твой папа', 'больно падать с неба', 'ты ангел', 'пиши если что',
-    'прив', 'ку', 'здарова', 'хей', 'норм', 'ясн', 'понятно', 'ок'
+    'прив', 'ку', 'здарова', 'хей', 'норм', 'ясн', 'понятно', 'ок', 'привет'
   ],
 
   INSECURE_PATTERNS: [
@@ -15,24 +15,25 @@ window.RizzEvaluator = {
   RUDE_PATTERNS: [
     'дура', 'тупая', 'сука', 'шлюх', 'иди на', 'пошла', 'жирн', 'страшн',
     'сиськ', 'жоп', 'трах', 'скинь нюдс', 'го спать', 'рот закрой',
-    'не выпендривайся', 'ты обязана', 'меркантильн'
+    'не выпендривайся', 'ты обязана', 'меркантильн', 'телочка'
   ],
 
   HUMOR_SIGNALS: [
     'ахах', 'хах', 'шутк', 'секрет', 'спор', 'пари', 'миллион', 'квест',
     'договор', 'официально', 'обеща', 'контракт', 'сериал', 'сценари',
-    'тайна', 'интриг', 'рейтинг', '😂', '😏', '😉', '🔥', '😎', '😄'
+    'тайна', 'интриг', 'рейтинг', '😂', '😏', '😉', '🔥', '😎', '😄', '🤣'
   ],
 
   COMPLIMENT_SIGNALS: [
     'красив', 'милая', 'милашка', 'очароват', 'улыбк', 'глаза', 'стиль',
-    'крутая', 'классная', 'умная', 'особенн', 'шикарн', 'восхит', 'необычн', 'симпатич'
+    'крутая', 'классная', 'умная', 'особенн', 'шикарн', 'восхит', 'необычн',
+    'симпатич', 'блондин', 'образ', 'вайбов'
   ],
 
   INVITE_SIGNALS: [
     'пойд', 'погнал', 'сход', 'приглаш', 'встрет', 'ужин', 'кофе', 'чай',
     'кино', 'бар', 'ресторан', 'прогул', 'гулять', 'суббот', 'пятниц',
-    'вечер', 'завтра', 'сегодня', 'выходн', 'свидан'
+    'вечер', 'завтра', 'сегодня', 'выходн', 'свидан', 'залет', 'фест', 'каток'
   ],
 
   analyzeMessage(text, persona, history) {
@@ -57,19 +58,19 @@ window.RizzEvaluator = {
       originality = 2.0;
       sympathyDelta -= 28;
       category = 'rude';
-      notes.push('🚩 Грубость или неуместная пошлость');
+      notes.push('🚩 Грубость или пошлость');
     }
 
     const isCliche =
-      this.CLICHE_PATTERNS.some((p) => lower === p || (lower.includes(p) && words.length <= 4)) ||
-      words.length <= 2;
+      this.CLICHE_PATTERNS.some((p) => lower === p || (lower.includes(p) && words.length <= 3)) ||
+      (words.length <= 2 && !/\d/.test(lower));
 
     if (isCliche && !isRude) {
       originality -= 3.5;
       engagement -= 2.0;
       sympathyDelta -= 10;
       category = 'cliche';
-      notes.push('😴 Шаблонно или слишком коротко');
+      notes.push('😴 Слишком сухо или шаблонно');
     }
 
     const isInsecure = this.INSECURE_PATTERNS.some((p) => lower.includes(p));
@@ -77,7 +78,7 @@ window.RizzEvaluator = {
       confidence -= 4.0;
       sympathyDelta -= 12;
       if (category === 'neutral') category = 'insecure';
-      notes.push('📉 Неуверенная подача (извинения/сомнения)');
+      notes.push('📉 Неуверенная подача');
     }
 
     const matchedKeywords = persona.interestKeywords.filter((kw) => lower.includes(kw));
@@ -87,7 +88,7 @@ window.RizzEvaluator = {
       originality += 1.6;
       sympathyDelta += 14 + Math.min(6, matchedKeywords.length * 3);
       category = 'interestHit';
-      notes.push('🎯 Попал в интересы из анкеты!');
+      notes.push('🎯 Попал в интересы!');
     }
 
     const hasCompliment = this.COMPLIMENT_SIGNALS.some((c) => lower.includes(c));
@@ -96,7 +97,7 @@ window.RizzEvaluator = {
       originality += 1.2;
       sympathyDelta += 6;
       if (category === 'neutral') category = 'compliment';
-      notes.push('💐 Приятный комплимент');
+      notes.push('💐 Удачный комплимент');
     }
 
     const hasHumor = this.HUMOR_SIGNALS.some((s) => lower.includes(s));
@@ -105,7 +106,7 @@ window.RizzEvaluator = {
       confidence += 1.4;
       sympathyDelta += 8;
       if (category === 'neutral') category = 'witty';
-      notes.push('✨ Живая и креативная подача');
+      notes.push('✨ Живая подача');
     }
 
     if (clean.includes('?') && !isCliche && !isRude) {
@@ -119,7 +120,7 @@ window.RizzEvaluator = {
       confidence += 2.3;
       sympathyDelta += 7;
       if (category === 'neutral') category = 'invite';
-      notes.push('🔥 Уверенная инициатива к встрече');
+      notes.push('🔥 Инициатива к встрече');
     }
 
     const prevTexts = history.filter((h) => h.role === 'user').map((h) => h.text.toLowerCase());
@@ -135,8 +136,8 @@ window.RizzEvaluator = {
       sympathyDelta = Math.round(sympathyDelta * 1.15);
     }
 
-    if (sympathyDelta === 0 && words.length >= 4 && !isRude) {
-      sympathyDelta = 4;
+    if (sympathyDelta === 0 && words.length >= 3 && !isRude) {
+      sympathyDelta = 5;
     }
 
     const clamp10 = (v) => Math.max(0, Math.min(10, Math.round(v * 10) / 10));
@@ -154,170 +155,318 @@ window.RizzEvaluator = {
       matchedKeywords,
       hasInvite,
       hasCompliment,
-      notes: notes.length ? notes : ['👍 Нормальное сообщение']
+      notes: notes.length ? notes : ['👍 Нормальный ход']
     };
   },
 
-  // Context-aware NLU Reply Engine
-  generateSmartReply(text, persona, analysis, newSympathy, turn, maxTurns, usedReplies) {
+  // Realistic Context & Pop-Culture NLU Engine 2.0
+  generateSmartReply(text, persona, analysis, newSympathy, turn, maxTurns, usedReplies, ctx = {}) {
     const lower = text.toLowerCase().replace(/ё/g, 'е');
     const firstName = persona.name.split(',')[0];
+    const isHard = persona.difficulty === 'Хардкор';
+    const isEasy = persona.difficulty === 'Лёгкая';
 
-    // Check Win / Fail boundaries first
+    const pickUnique = (pool) => {
+      const choice = pool.find((p) => !usedReplies.has(p)) || pool[Math.floor(Math.random() * pool.length)];
+      usedReplies.add(choice);
+      return choice;
+    };
+
+    // Win / Fail checks
     if (newSympathy <= 10) {
       return {
-        text:
-          persona.difficulty === 'Хардкор'
-            ? `Слушай, мне кажется, нам вообще не по пути. Не буду тратить время. Пока 🚫`
-            : `Прости, но у нас как-то совсем не складывается диалог... Удачи в поисках! 👋`,
-        forceEnd: 'fail'
+        text: isHard
+          ? `Слушай, мимо. У нас ноль коннекта, не трать ни моё, ни своё время. Пока 🚫`
+          : `Прости, но как-то не складывается... Удачи в поисках! 👋`,
+        forceEnd: 'fail',
+        nextTopic: null
       };
     }
 
     if (newSympathy >= 85 || (turn >= maxTurns && newSympathy >= 65)) {
       const tg = `@${persona.id}_real`;
       return {
-        text: `Ладно, ты меня реально зацепил 😍 С тобой очень крутой вайб! Держи мой тг: ${tg} — пиши, договоримся о встрече (${persona.idealDate})!`,
-        forceEnd: 'win'
+        text: isHard
+          ? `Ладно, признаю — ты реально вывез 🔥 Редко кто так цепляет. Пиши в тг ${tg}, обсудим, когда замутим «${persona.idealDate}».`
+          : `Вау, мне с тобой безумно комфортно и весело 😍 Держи мой тг: ${tg} — пиши скорее!`,
+        forceEnd: 'win',
+        nextTopic: null
       };
     }
 
     if (turn >= maxTurns) {
       return {
-        text: `Было интересно пообщаться, но мне пора бежать по делам. Может, как-нибудь ещё спишемся ✨`,
-        forceEnd: 'mid_or_fail'
+        text: `Слушай, мне пора убегать по делам, но поболтали прикольно ✨ Может, ещё пересечёмся!`,
+        forceEnd: 'mid_or_fail',
+        nextTopic: null
       };
     }
 
-    // 1. Direct NLU Intent: Rude
+    // 1. Rude / Insecure
     if (analysis.category === 'rude') {
       return {
-        text:
-          persona.difficulty === 'Хардкор'
-            ? 'Ещё одно такое сообщение — и сразу в ЧС. Выбирай выражения 🚩'
-            : 'Ой, вот так разговаривать со мной точно не надо. Очень неприятно 😕',
-        forceEnd: null
+        text: isHard
+          ? 'Ты серьёзно думаешь, что так можно общаться? Ещё один выпад — и ты в ЧС 🚩'
+          : 'Эй, это уже перебор... Пожалуйста, общайся уважительно 😕',
+        forceEnd: null,
+        nextTopic: null
       };
     }
 
-    // 2. Direct NLU Intent: Insecure
     if (analysis.category === 'insecure') {
       return {
-        text: 'Эй, не нужно извиняться и сомневаться в себе! Уверенность парня красит гораздо сильнее 😉 Расскажи лучше о себе.',
-        forceEnd: null
+        text: isHard
+          ? 'Вот только без этих извинений и жалости к себе. Соберись, мне нравятся уверенные 😉'
+          : 'Не нужно извиняться, ты мне совсем не мешаешь! Расскажи лучше, чем увлекаешься? 😊',
+        forceEnd: null,
+        nextTopic: 'asked_hobby'
       };
     }
 
-    // 3. Direct NLU Intent: Asking about her work / study
+    // 2. Follow-up to her PREVIOUS question (Context memory!)
+    if (ctx.lastTopic === 'asked_date_time' && /(\d|вечер|завтра|сегодня|пятниц|суббот|воскр|центр|кафе|парк|часов)/i.test(lower)) {
+      return {
+        text: pickUnique([
+          `О, конкретика мне нравится 🔥 Договорились — в это время я как раз свободна. А кто за кофе/еду платит, или по классике? 😏`,
+          `Звучит как отличный план! Люблю, когда парень сам всё решает, а не «ну не знаю, выбери ты» 😉`
+        ]),
+        forceEnd: null,
+        nextTopic: null
+      };
+    }
+
+    if (ctx.lastTopic === 'asked_music' && text.length >= 4 && !text.includes('?')) {
+      return {
+        text: pickUnique([
+          `Неплохой вкус! Надо будет как-нибудь обменяться плейлистами 🎧 А на живых концертах часто бываешь?`,
+          `О, такое я тоже могу послушать под настроение! У тебя прям хороший вайб в музыке ✨`
+        ]),
+        forceEnd: null,
+        nextTopic: null
+      };
+    }
+
+    if (ctx.lastTopic === 'asked_hobby' && text.length >= 6 && !text.includes('?')) {
+      return {
+        text: pickUnique([
+          `Ого, звучит прикольно! Мне нравится, когда у человека есть своё дело, а не только диван и тикток 😄`,
+          `Круто! И давно ты этим занимаешься? Я вот в свободное время всё равно возвращаюсь к своим увлечениям (${persona.interests[0]}).`
+        ]),
+        forceEnd: null,
+        nextTopic: null
+      };
+    }
+
+    // 3. Specific Pop-Culture & Gaming Deep NLU
+    if (/(геншин|genshin|примогем|баннер|ху тао|райдэн|фурин|архонт|бездн|50\/50)/i.test(lower)) {
+      return {
+        text: pickUnique([
+          `Оо, шаришь за Геншин! 😍 Я как раз коплю крутки на новый баннер и вечно проигрываю 50/50. А кто у тебя мейн в отряде?`,
+          `Наконец-то нормальный разговор 😂 Какой у тебя ранг приключений? Если поможешь закрыть бездну или боссов — плюс 100 к карме!`
+        ]),
+        forceEnd: null,
+        nextTopic: 'asked_game'
+      };
+    }
+
+    if (/(resident|резидент|re6|обитель|леон|ада|крис|джейк|шерри|зомби)/i.test(lower)) {
+      return {
+        text: pickUnique([
+          `Вау, ты реально знаешь Resident Evil 6?! 🔥 Мне больше всего заходит кампания за Леона и Аду, в коопе вообще пушка. Потянешь напарника на сложности «Кошмар»?)`,
+          `Респект за RE6! Там в коопе такой экшен, особенно когда патроны на нуле 😂 Ты за кого обычно играешь?`
+        ]),
+        forceEnd: null,
+        nextTopic: 'asked_game'
+      };
+    }
+
+    if (/(косплей|парик|крафт|фест|макима|2b|аниме|манга|наруто|титан|бензопил|магическ)/i.test(lower)) {
+      return {
+        text: pickUnique([
+          `Обожаю тему аниме и косплея ✨ Столько времени уходит на укладку парика и детали, зато на фестах потом кайф. Какой твой любимый тайтл?`,
+          `Ты бы заценил мой последний образ 😏 А сам бы пошёл на фест в парном косплее или стесняешься?)`
+        ]),
+        forceEnd: null,
+        nextTopic: 'asked_hobby'
+      };
+    }
+
+    if (/(стим|steam|кс|cs|дота|dota|валорант|valorant|дискорд|катка|ммр|ранг|фейсит)/i.test(lower)) {
+      return {
+        text: pickUnique([
+          `Если не тильтуешь после первого слитого раунда, можем как-нибудь залететь в пати в Discord 🎮 На чём в основном играешь?`,
+          `Хах, главное не говори, что ты токсик в войсе 😂 Кидай потом стим — посмотрим, кто кого тащить будет!`
+        ]),
+        forceEnd: null,
+        nextTopic: 'asked_game'
+      };
+    }
+
+    if (/(тикток|тт|рилс|эдит|рекомендац|capcut|тренд|мем)/i.test(lower)) {
+      return {
+        text: pickUnique([
+          `Моя лента TikTok — это отдельный вид искусства 😂 Какие видео тебе обычно залетают в реки?`,
+          `Осторожно, я могу закидать тебя мемами и эдитами в личке так, что телефон сядет 📱 У тебя какой юмор — чёрный или добрый?`
+        ]),
+        forceEnd: null,
+        nextTopic: null
+      };
+    }
+
+    // 4. Personal questions about her
+    if (/(есть парень|свободна|отношения|встречаешь)/i.test(lower)) {
+      return {
+        text: pickUnique([
+          `Если бы был парень, меня бы тут не было, логично? 😉 А ты сразу по делу проверяешь почву?`,
+          `Свободна, но с характером. Так что просто за красивые глаза внимание не раздаю 😌`
+        ]),
+        forceEnd: null,
+        nextTopic: null
+      };
+    }
+
     if (/(кем работа|где работа|чем занимаешь|на кого учишь|учишься|професс|работаешь)/i.test(lower)) {
       return {
-        text: `Я ${persona.workOrStudy}. А ты чем по жизни занимаешься, что тебя самого драйвит? 😊`,
-        forceEnd: null
+        text: `Я ${persona.workOrStudy}. А ты сам чем занимаешься — учишься, работаешь или свои проекты мутишь?`,
+        forceEnd: null,
+        nextTopic: 'asked_hobby'
       };
     }
 
-    // 4. Direct NLU Intent: Asking about her music
     if (/(музык|слушаешь|трек|плейлист|песн|жанр)/i.test(lower)) {
       return {
-        text: `По музыке — ${persona.favMusic}. А что сейчас играет у тебя в наушниках? 🎧`,
-        forceEnd: null
+        text: `По музыке — ${persona.favMusic}. А у тебя что сейчас на репите в спотике или вк? 🎧`,
+        forceEnd: null,
+        nextTopic: 'asked_music'
       };
     }
 
-    // 5. Direct NLU Intent: Asking about ideal date / what she likes to do
-    if (/(идеальн.*свидан|куда пойд|что любит|чем занят.*вечер|свободн.*время|отдыхаешь)/i.test(lower)) {
+    if (/(откуда|какой город|где живешь|район)/i.test(lower)) {
       return {
-        text: `Мой идеальный вариант — ${persona.idealDate}. Звучит как хороший план, правда? 😏`,
-        forceEnd: null
+        text: `Живу в центре, так что выбраться куда-то вечером вообще не проблема 🙂 А ты с какого района?`,
+        forceEnd: null,
+        nextTopic: null
       };
     }
 
-    // 6. Direct NLU Intent: Invitation to meet
+    if (/(идеальн.*свидан|куда пойд|что любит|чем занят.*вечер|свободн.*время)/i.test(lower)) {
+      return {
+        text: `Для меня кайф — ${persona.idealDate}. Что скажешь, потянешь такой сценарий? 😏`,
+        forceEnd: null,
+        nextTopic: null
+      };
+    }
+
+    // 5. Invites
     if (analysis.hasInvite) {
-      if (newSympathy >= 55) {
+      if (newSympathy >= 52) {
         return {
-          text: `О, мне нравится твоя решительность! 🔥 Если честно, идея отличная — а во сколько и где именно ты предлагаешь?`,
-          forceEnd: null
+          text: `Мне нравится твоя решительность 🔥 Окей, звучит интересно — во сколько и где именно предлагаешь встретиться?`,
+          forceEnd: null,
+          nextTopic: 'asked_date_time'
         };
       }
       return {
-        text: `Смело сразу звать на встречу 😄 Но давай ты сначала чуть лучше меня заинтересуешь — расскажи, почему с тобой не будет скучно?`,
-        forceEnd: null
+        text: isHard
+          ? `Слишком быстро зовёшь на встречу, мы даже 3 фразами не перекинулись. Заинтересуй сначала перепиской 😏`
+          : `Смело! Но давай сначала немного пообщаемся здесь, чтобы я поняла, что ты не маньяк 😄 Расскажи что-нибудь о себе!`,
+        forceEnd: null,
+        nextTopic: 'asked_hobby'
       };
     }
 
-    // 7. Direct NLU Intent: Matched one of her specific interests from bio
+    // 6. Matched interests from bio
     if (analysis.matchedKeywords.length > 0) {
-      const topic = persona.interests.find((i) =>
-        analysis.matchedKeywords.some((kw) => i.toLowerCase().includes(kw.slice(0, 3)))
-      ) || persona.interests[0];
+      const topic =
+        persona.interests.find((i) =>
+          analysis.matchedKeywords.some((kw) => i.toLowerCase().includes(kw.slice(0, 3)))
+        ) || persona.interests[0];
 
-      const pool = [
-        `Ого, ты подметил про «${topic}»! 👀 Редко кто реально читает анкету. Что тебе в этом больше всего нравится?`,
-        `Хах, тема «${topic}» — это прямо в точку! ✨ Вижу, у нас уже есть о чём поговорить. А ты сам давно этим увлекаешься?`,
-        `Зачёт за внимательность к «${topic}» 😏 Сразу видно, что не просто всем подряд пишешь!`
-      ];
-      const pick = pool.find((p) => !usedReplies.has(p)) || pool[0];
-      usedReplies.add(pick);
-      return { text: pick, forceEnd: null };
+      return {
+        text: pickUnique([
+          `О, зацепил за «${topic}» 👀 Приятно, когда парень реально читает анкету, а не шлёт всем одно и то же. Что тебе в этом больше всего нравится?`,
+          `Тема «${topic}» — это прямо в яблочко ✨ Вижу, у нас уже есть общий вайб. Расскажешь подробнее?`
+        ]),
+        forceEnd: null,
+        nextTopic: null
+      };
     }
 
-    // 8. Direct NLU Intent: Compliment
+    // 7. Compliment
     if (analysis.hasCompliment) {
-      const pool = [
-        `Спасибо, очень приятно это слышать 😊 А что ещё, кроме внешности, тебя в девушках цепляет?`,
-        `Оу, умеешь красиво сказать 🌸 Но мне интереснее, какой ты сам в общении — удиви меня фактом о себе!`,
-        `Засчитано, ${firstName} улыбнулась 😌 А на первом свидании ты такой же обаятельный?`
-      ];
-      const pick = pool.find((p) => !usedReplies.has(p)) || pool[0];
-      usedReplies.add(pick);
-      return { text: pick, forceEnd: null };
+      return {
+        text: isHard
+          ? pickUnique([
+              `Ну, комплиментами меня заваливают каждый день 😌 Попробуй выделиться умом или юмором, а не просто «ты красивая».`,
+              `Спасибо, конечно, но внешность — это база. Что в тебе самом интересного?`
+            ])
+          : pickUnique([
+              `Оу, спасибо, мне очень приятно 😊 А что тебя вообще больше всего цепляет в людях?`,
+              `Мило сказано 🌸 ${firstName} официально улыбнулась! А ты в жизни такой же галантный?`
+            ]),
+        forceEnd: null,
+        nextTopic: null
+      };
     }
 
-    // 9. Cliche
+    // 8. Cliche
     if (analysis.category === 'cliche') {
-      const pool = [
-        `Слушай, ну «${text}» — это слишком скучно 😴 У меня в анкете куча подсказок, зацепки же прямо перед глазами!`,
-        `Звучит как стандартная заготовка. Давай по-настоящему — задай нормальный вопрос или пошути! 🙄`
-      ];
-      const pick = pool.find((p) => !usedReplies.has(p)) || pool[0];
-      usedReplies.add(pick);
-      return { text: pick, forceEnd: null };
+      return {
+        text: pickUnique([
+          `Серьёзно, «${text}»? 😴 Ну камон, в анкете куча зацепок, прояви хоть каплю фантазии!`,
+          `Слишком сухо. С такими сообщениями диалог обычно умирает на второй минуте 🙄`
+        ]),
+        forceEnd: null,
+        nextTopic: null
+      };
     }
 
-    // 10. Witty / Creative or Question
+    // 9. Witty / Telling about himself
+    if (/(я работа|я учусь|я играю|люблю|обожаю|мне нрав)/i.test(lower)) {
+      return {
+        text: pickUnique([
+          `Прикольно, что рассказал про себя 🙂 Мне нравятся люди, которые горят своими увлечениями. А как проводишь идеальные выходные?`,
+          `Зачётно! Похоже, скучно с тобой точно не будет 😏 И какой твой главный козырь на первом свидании?`
+        ]),
+        forceEnd: null,
+        nextTopic: null
+      };
+    }
+
     if (analysis.category === 'witty') {
-      const pool = [
-        `Ахаха, вот это хороший заход 😂 Чувство юмора у тебя точно на уровне. Что дальше предложишь?`,
-        `Мне нравится ход твоих мыслей 😏 С тобой явно не соскучишься! А какой у тебя план на эти выходные?`,
-        `Неожиданно и прикольно ✨ Слушай, а ты всегда так нестандартно знакомишься?`
-      ];
-      const pick = pool.find((p) => !usedReplies.has(p)) || pool[0];
-      usedReplies.add(pick);
-      return { text: pick, forceEnd: null };
+      return {
+        text: pickUnique([
+          `Ахаха, вот это хороший заход 😂 Чувство юмора у тебя реально на уровне. Продолжай!`,
+          `Мне нравится твой настрой 😏 Неожиданно и с перчинкой. Что дальше предложишь?`
+        ]),
+        forceEnd: null,
+        nextTopic: null
+      };
     }
 
-    // 11. Contextual fallback referencing her profile
-    const fallbackPool = [
-      `Интересная мысль! Кстати, я ведь ${persona.workOrStudy} — а как у тебя обычно проходят вечера?`,
-      `Звучит неплохо 🙂 А если бы мы прямо сейчас встретились, ты бы предложил «${persona.idealDate}» или что-то своё?`,
-      `Ладно, интригуешь 😉 Расскажи какую-нибудь забавную историю о себе, чтобы я поняла твой вайб!`
-    ];
-    const pick = fallbackPool.find((p) => !usedReplies.has(p)) || fallbackPool[0];
-    usedReplies.add(pick);
-    return { text: pick, forceEnd: null };
+    // 10. Rich fallback
+    return {
+      text: pickUnique([
+        `Хм, интересно! Кстати, я ведь ${persona.workOrStudy}. А ты чем обычно занимаешься по вечерам?`,
+        `Допустим 🙂 Слушай, а если бы мы прямо сейчас выбирали: «${persona.idealDate}» или что-то твоё — что бы ты предложил?`,
+        isEasy
+          ? `Прикольно! Расскажи какую-нибудь смешную историю из жизни, люблю весёлых людей 😄`
+          : `Пока звучит средненько, не до конца понял твой вайб. Давай поинтереснее 😏`
+      ]),
+      forceEnd: null,
+      nextTopic: null
+    };
   },
 
-  // Optional Real AI (OpenAI-compatible endpoint)
   async fetchAIReply(apiConfig, persona, history, sympathy, turn, maxTurns) {
-    const sysPrompt = `Ты играешь роль девушки по имени ${persona.name} в симуляторе знакомств RIZZ LAB.
-Твоё описание: ${persona.bio}
-Твои интересы: ${persona.interests.join(', ')}.
+    const sysPrompt = `Ты общаешься в симуляторе знакомств от лица девушки: ${persona.name}.
+Вайб и био: ${persona.bio}
+Интересы: ${persona.interests.join(', ')}.
 Учёба/работа: ${persona.workOrStudy}.
-Любимая музыка: ${persona.favMusic}.
+Музыка: ${persona.favMusic}.
 Идеальное свидание: ${persona.idealDate}.
-Сложность: ${persona.difficulty}. Текущая симпатия: ${sympathy}/100. Ход ${turn} из ${maxTurns}.
-Отвечай живо, естественно, по-русски (1-3 предложения), в характере этой девушки. Реагируй прямо на смысл сообщения парня!`;
+Сложность: ${persona.difficulty}. Симпатия сейчас: ${sympathy}/100. Ход ${turn} из ${maxTurns}.
+Пиши максимально живо, естественно, как реальная девушка 18-24 лет в переписке (сленг умеренно, эмоции, реакция на смысл, 1-3 коротких предложения).`;
 
     const messages = [
       { role: 'system', content: sysPrompt },
@@ -336,7 +485,7 @@ window.RizzEvaluator = {
       body: JSON.stringify({
         model: apiConfig.model || 'gpt-4o-mini',
         messages,
-        temperature: 0.85,
+        temperature: 0.88,
         max_tokens: 180
       })
     });
@@ -375,7 +524,7 @@ window.RizzEvaluator = {
       },
       {
         label: '🔥 Уверенный план',
-        text: `Как насчёт того, чтобы не сидеть в чате, а устроить в эти выходные «${persona.idealDate}»?`
+        text: `Как насчёт того, чтобы не сидеть в чате, а устроить на выходных «${persona.idealDate}»?`
       }
     ];
   },
@@ -413,7 +562,6 @@ window.RizzEvaluator = {
     const critTact = avg('tact');
     const critVibe = avg('vibeMatch');
 
-    // Weighted criteria score (0..100)
     const weightedCriteria =
       (critOriginality * 0.24 +
         critConfidence * 0.22 +
@@ -422,15 +570,10 @@ window.RizzEvaluator = {
         critVibe * 0.2) *
       10;
 
-    // Depth factor: 1-2 messages shouldn't easily hit 90+
     const turnsCount = messageLogs.length;
     const depthFactor = turnsCount >= 4 ? 1 : turnsCount === 3 ? 0.92 : turnsCount === 2 ? 0.82 : 0.68;
+    const diffMult = persona.difficulty === 'Хардкор' ? 1.08 : persona.difficulty === 'Лёгкая' ? 0.95 : 1.0;
 
-    // Difficulty multiplier bonus/adjustment
-    const diffMult =
-      persona.difficulty === 'Хардкор' ? 1.08 : persona.difficulty === 'Лёгкая' ? 0.95 : 1.0;
-
-    // Peak & strong moves bonus
     const strongMoves = messageLogs.filter((m) => m.analysis.sympathyDelta >= 10).length;
     const redFlags = messageLogs.filter((m) => m.analysis.sympathyDelta <= -10).length;
     const momentumBonus = strongMoves * 2.5 - redFlags * 4;
@@ -497,7 +640,6 @@ window.RizzEvaluator = {
       }
     ];
 
-    // Find weakest criterion for actionable advice
     const weakest = [...criteria].sort((a, b) => a.score - b.score)[0];
     const mainAdvice =
       turnsCount < 3
