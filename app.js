@@ -283,7 +283,11 @@
     // Wingman
     el.wingmanBtn.addEventListener('click', () => {
       if (state.wingmanLeft <= 0 || state.ended || state.isTyping) return;
-      const suggestions = window.RizzEvaluator.getWingmanSuggestions(state.persona);
+      const suggestions = window.RizzEvaluator.getWingmanSuggestions(
+        state.persona,
+        state.turn,
+        state.sympathy
+      );
       el.wingmanList.innerHTML = '';
       suggestions.forEach((s) => {
         const btn = document.createElement('button');
