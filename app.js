@@ -1,11 +1,24 @@
 (() => {
   const MAX_TURNS = 6;
   const AI_STORAGE_KEY = 'rizz_lab_ai_cfg';
+  const PROGRESS_KEY = 'rizz_lab_progress_v3';
+
+  const ACHIEVEMENTS = [
+    { id: 'first_win', icon: '💘', name: 'Первый контакт', desc: 'Покори свою первую девушку' },
+    { id: 'hardcore_win', icon: '👑', name: 'Покоритель Хардкора', desc: 'Закадри девушку сложности Хардкор' },
+    { id: 's_rank', icon: '🌟', name: 'S-Ранг', desc: 'Набери 88+ Индекса Харизмы за диалог' },
+    { id: 'combo_3', icon: '🔥', name: 'В потоке', desc: 'Собери комбо x3 из сильных сообщений подряд' },
+    { id: 'sniper', icon: '🎯', name: 'Снайпер анкеты', desc: 'Попади в 2+ интереса из анкеты в одном сообщении' },
+    { id: 'collector_5', icon: '💎', name: 'Сердцеед', desc: 'Покори 5 разных девушек' },
+    { id: 'collector_12', icon: '🏆', name: 'Мастер Rizz', desc: 'Покори 12 разных девушек' }
+  ];
 
   const state = {
     persona: null,
     sympathy: 35,
     turn: 0,
+    combo: 0,
+    wingmanLeft: 2,
     history: [],
     messageLogs: [],
     usedReplies: new Set(),
@@ -13,7 +26,9 @@
     ended: false,
     diffFilter: 'all',
     searchQuery: '',
-    aiConfig: loadAiConfig()
+    lastReport: null,
+    aiConfig: loadJson(AI_STORAGE_KEY, null),
+    progress: loadJson(PROGRESS_KEY, { conquered: [], bestScores: {}, achievements: [] })
   };
 
   const screens = {
@@ -23,10 +38,20 @@
   };
 
   const el = {
+    toastContainer: document.getElementById('toastContainer'),
+    playerRankText: document.getElementById('playerRankText'),
+    conqueredCount: document.getElementById('conqueredCount'),
+    achievementsBtn: document.getElementById('achievementsBtn'),
+    soundBtn: document.getElementById('soundBtn'),
     backHomeBtn: document.getElementById('backHomeBtn'),
+    randomMatchBtn: document.getElementById('randomMatchBtn'),
     personasGrid: document.getElementById('personasGrid'),
     difficultyFilters: document.getElementById('difficultyFilters'),
     searchInput: document.getElementById('searchInput'),
+
+    achModal: document.getElementById('achModal'),
+    achGrid: document.getElementById('achGrid'),
+    closeAchBtn: document.getElementById('closeAchBtn'),
 
     aiSettingsBtn: document.getElementById('aiSettingsBtn'),
     aiModal: document.getElementById('aiModal'),
@@ -45,12 +70,18 @@
     profileInterests: document.getElementById('profileInterests'),
     sympathyPct: document.getElementById('sympathyPct'),
     sympathyBar: document.getElementById('sympathyBar'),
+    comboBadge: document.getElementById('comboBadge'),
     turnNum: document.getElementById('turnNum'),
     turnMax: document.getElementById('turnMax'),
 
     mhAvatar: document.getElementById('mhAvatar'),
     mhName: document.getElementById('mhName'),
     mhStatus: document.getElementById('mhStatus'),
+    wingmanBtn: document.getElementById('wingmanBtn'),
+    wingmanCharges: document.getElementById('wingmanCharges'),
+    wingmanDrawer: document.getElementById('wingmanDrawer'),
+    wingmanList: document.getElementById('wingmanList'),
+    closeWingmanBtn: document.getElementById('closeWingmanBtn'),
     finishEarlyBtn: document.getElementById('finishEarlyBtn'),
     chatFeed: document.getElementById('chatFeed'),
     chatForm: document.getElementById('chatForm'),
@@ -72,25 +103,63 @@
     criteriaList: document.getElementById('criteriaList'),
     highlightsList: document.getElementById('highlightsList'),
     retrySameBtn: document.getElementById('retrySameBtn'),
+    copyReportBtn: document.getElementById('copyReportBtn'),
     chooseAnotherBtn: document.getElementById('chooseAnotherBtn')
   };
 
-  function loadAiConfig() {
+  function loadJson(key, fallback) {
     try {
-      const raw = localStorage.getItem(AI_STORAGE_KEY);
-      return raw ? JSON.parse(raw) : null;
+      const raw = localStorage.getItem(key);
+      return raw ? JSON.parse(raw) : fallback;
     } catch (_) {
-      return null;
+      return fallback;
     }
+  }
+
+  function saveProgress() {
+    try {
+      localStorage.setItem(PROGRESS_KEY, JSON.stringify(state.progress));
+    } catch (_) {}
+  }
+
+  function updateHeaderStats() {
+    const count = state.progress.conquered.length;
+    el.conqueredCount.textContent = count;
+    let rank = 'Новичок';
+    if (count >= 18) rank = 'Легенда';
+    else if (count >= 10) rank = 'Мастер Rizz';
+    else if (count >= 5) rank = 'Сердцеед';
+    else if (count >= 2) rank = 'Романтик';
+    el.playerRankText.textContent = rank;
   }
 
   function updateAiBtnLabel() {
     el.aiSettingsBtn.textContent =
-      state.aiConfig && state.aiConfig.apiKey ? '🤖 ИИ-режим: ВКЛ' : '⚙️ ИИ-режим';
+      state.aiConfig && state.aiConfig.apiKey ? '🤖 ИИ: ВКЛ' : '⚙️ ИИ';
+  }
+
+  function showToast(text) {
+    const t = document.createElement('div');
+    t.className = 'toast';
+    t.textContent = text;
+    el.toastContainer.appendChild(t);
+    setTimeout(() => t.remove(), 3500);
+  }
+
+  function unlockAchievement(id) {
+    if (state.progress.achievements.includes(id)) return;
+    state.progress.achievements.push(id);
+    saveProgress();
+    const ach = ACHIEVEMENTS.find((a) => a.id === id);
+    if (ach) {
+      window.rizzSound.combo();
+      showToast(`🏆 Достижение: ${ach.icon} ${ach.name}!`);
+    }
   }
 
   function init() {
     updateAiBtnLabel();
+    updateHeaderStats();
     renderPersonas();
     bindEvents();
   }
@@ -99,6 +168,10 @@
     Object.values(screens).forEach((s) => s.classList.remove('active'));
     screens[name].classList.add('active');
     el.backHomeBtn.classList.toggle('hidden', name === 'select');
+    if (name === 'select') {
+      updateHeaderStats();
+      renderPersonas();
+    }
   }
 
   function renderPersonas() {
@@ -106,22 +179,28 @@
     const q = state.searchQuery.trim().toLowerCase();
 
     const filtered = window.PERSONAS.filter((p) => {
-      const diffMatch = state.diffFilter === 'all' || p.difficulty === state.diffFilter;
-      if (!diffMatch) return false;
+      const isConquered = state.progress.conquered.includes(p.id);
+      if (state.diffFilter === 'conquered' && !isConquered) return false;
+      if (state.diffFilter !== 'all' && state.diffFilter !== 'conquered' && p.difficulty !== state.diffFilter) {
+        return false;
+      }
       if (!q) return true;
       const hay = `${p.name} ${p.tagline} ${p.bio} ${p.interests.join(' ')}`.toLowerCase();
       return hay.includes(q);
     });
 
     if (filtered.length === 0) {
-      el.personasGrid.innerHTML = `<p style="color: var(--text-muted); grid-column: 1/-1; text-align:center;">Никого не найдено по запросу «${escapeHtml(state.searchQuery)}»</p>`;
+      el.personasGrid.innerHTML = `<p style="color: var(--text-muted); grid-column: 1/-1; text-align:center;">Никого не найдено 😔</p>`;
       return;
     }
 
     filtered.forEach((p) => {
+      const isConquered = state.progress.conquered.includes(p.id);
+      const best = state.progress.bestScores[p.id];
       const card = document.createElement('article');
-      card.className = 'persona-card';
+      card.className = 'persona-card' + (isConquered ? ' conquered' : '');
       card.innerHTML = `
+        ${isConquered ? `<span class="conquered-badge">💘 Покорена${best ? ` (${best}/100)` : ''}</span>` : ''}
         <div class="persona-top">
           <div class="persona-emoji">${p.avatar}</div>
           <div>
@@ -141,11 +220,46 @@
     });
   }
 
+  function renderAchievementsModal() {
+    el.achGrid.innerHTML = '';
+    ACHIEVEMENTS.forEach((a) => {
+      const unlocked = state.progress.achievements.includes(a.id);
+      const div = document.createElement('div');
+      div.className = 'ach-card' + (unlocked ? ' unlocked' : '');
+      div.innerHTML = `
+        <div class="ach-icon">${a.icon}</div>
+        <div>
+          <div class="ach-name">${a.name}</div>
+          <div class="ach-desc">${a.desc}</div>
+        </div>
+      `;
+      el.achGrid.appendChild(div);
+    });
+  }
+
   function bindEvents() {
     el.backHomeBtn.addEventListener('click', () => showScreen('select'));
     el.chooseAnotherBtn.addEventListener('click', () => showScreen('select'));
     el.retrySameBtn.addEventListener('click', () => {
       if (state.persona) startChat(state.persona);
+    });
+
+    el.soundBtn.addEventListener('click', () => {
+      window.rizzSound.muted = !window.rizzSound.muted;
+      el.soundBtn.textContent = window.rizzSound.muted ? '🔇' : '🔊';
+    });
+
+    el.achievementsBtn.addEventListener('click', () => {
+      renderAchievementsModal();
+      el.achModal.classList.remove('hidden');
+    });
+    el.closeAchBtn.addEventListener('click', () => el.achModal.classList.add('hidden'));
+
+    el.randomMatchBtn.addEventListener('click', () => {
+      const un = window.PERSONAS.filter((p) => !state.progress.conquered.includes(p.id));
+      const pool = un.length > 0 ? un : window.PERSONAS;
+      const pick = pool[Math.floor(Math.random() * pool.length)];
+      startChat(pick);
     });
 
     el.difficultyFilters.querySelectorAll('.filter-pill').forEach((btn) => {
@@ -162,6 +276,30 @@
       renderPersonas();
     });
 
+    // Wingman
+    el.wingmanBtn.addEventListener('click', () => {
+      if (state.wingmanLeft <= 0 || state.ended || state.isTyping) return;
+      const suggestions = window.RizzEvaluator.getWingmanSuggestions(state.persona);
+      el.wingmanList.innerHTML = '';
+      suggestions.forEach((s) => {
+        const btn = document.createElement('button');
+        btn.type = 'button';
+        btn.className = 'wingman-item';
+        btn.innerHTML = `<strong>${s.label}:</strong>${escapeHtml(s.text)}`;
+        btn.addEventListener('click', () => {
+          state.wingmanLeft--;
+          el.wingmanCharges.textContent = state.wingmanLeft;
+          if (state.wingmanLeft <= 0) el.wingmanBtn.disabled = true;
+          el.messageInput.value = s.text;
+          el.messageInput.focus();
+          el.wingmanDrawer.classList.add('hidden');
+        });
+        el.wingmanList.appendChild(btn);
+      });
+      el.wingmanDrawer.classList.toggle('hidden');
+    });
+    el.closeWingmanBtn.addEventListener('click', () => el.wingmanDrawer.classList.add('hidden'));
+
     // AI Modal
     el.aiSettingsBtn.addEventListener('click', () => {
       el.aiEndpointInput.value =
@@ -170,7 +308,6 @@
       el.aiModelInput.value = (state.aiConfig && state.aiConfig.model) || 'gpt-4o-mini';
       el.aiModal.classList.remove('hidden');
     });
-
     el.closeAiBtn.addEventListener('click', () => el.aiModal.classList.add('hidden'));
     el.saveAiBtn.addEventListener('click', () => {
       const endpoint = el.aiEndpointInput.value.trim();
@@ -183,7 +320,6 @@
       updateAiBtnLabel();
       el.aiModal.classList.add('hidden');
     });
-
     el.clearAiBtn.addEventListener('click', () => {
       state.aiConfig = null;
       localStorage.removeItem(AI_STORAGE_KEY);
@@ -195,12 +331,23 @@
       if (!state.isTyping) finishAndShowReport();
     });
 
+    el.copyReportBtn.addEventListener('click', () => {
+      if (!state.lastReport || !state.persona) return;
+      const r = state.lastReport;
+      const summary = `💘 RIZZ LAB — ${state.persona.name}\nРезультат: ${r.verdictBadge}\nИндекс харизмы: ${r.totalScore}/100 (Ранг ${r.rank.letter} — ${r.rank.title})`;
+      navigator.clipboard?.writeText(summary).catch(() => {});
+      const old = el.copyReportBtn.textContent;
+      el.copyReportBtn.textContent = '✅ Скопировано!';
+      setTimeout(() => (el.copyReportBtn.textContent = old), 1500);
+    });
+
     el.chatForm.addEventListener('submit', (e) => {
       e.preventDefault();
       if (state.isTyping || state.ended) return;
       const text = el.messageInput.value.trim();
       if (!text) return;
       el.messageInput.value = '';
+      el.wingmanDrawer.classList.add('hidden');
       handleUserMessage(text);
     });
   }
@@ -209,6 +356,8 @@
     state.persona = persona;
     state.sympathy = persona.startSympathy;
     state.turn = 0;
+    state.combo = 0;
+    state.wingmanLeft = 2;
     state.history = [];
     state.messageLogs = [];
     state.usedReplies = new Set();
@@ -227,6 +376,9 @@
     el.mhName.textContent = persona.name.split(',')[0];
     el.mhStatus.textContent = 'онлайн';
     el.turnMax.textContent = MAX_TURNS;
+    el.wingmanCharges.textContent = state.wingmanLeft;
+    el.wingmanBtn.disabled = false;
+    el.wingmanDrawer.classList.add('hidden');
 
     el.chatFeed.innerHTML = '';
     el.messageInput.disabled = false;
@@ -242,11 +394,31 @@
     state.turn++;
     const analysis = window.RizzEvaluator.analyzeMessage(text, state.persona, state.history);
 
+    // Combo system
+    if (analysis.sympathyDelta >= 8) {
+      state.combo++;
+      if (state.combo >= 2) {
+        analysis.sympathyDelta += 3;
+        window.rizzSound.combo();
+      } else {
+        window.rizzSound.send();
+      }
+      if (state.combo >= 3) unlockAchievement('combo_3');
+    } else {
+      state.combo = 0;
+      window.rizzSound.send();
+    }
+
+    if (analysis.matchedKeywords.length >= 2) {
+      unlockAchievement('sniper');
+    }
+
     state.sympathy = Math.max(0, Math.min(100, state.sympathy + analysis.sympathyDelta));
     state.history.push({ role: 'user', text });
     state.messageLogs.push({ text, analysis });
 
-    appendUserMessage(text, analysis);
+    const reaction = window.RizzEvaluator.getEmojiReaction(analysis);
+    appendUserMessage(text, analysis, reaction);
     updateSympathyUI();
 
     state.isTyping = true;
@@ -276,17 +448,16 @@
           state.turn,
           MAX_TURNS
         );
-      } catch (_) {
-        // Fallback silently to built-in NLU reply
-      }
+      } catch (_) {}
     } else {
-      await new Promise((r) => setTimeout(r, 650 + Math.random() * 500));
+      await new Promise((r) => setTimeout(r, 600 + Math.random() * 450));
     }
 
     typingEl.remove();
     state.isTyping = false;
     el.mhStatus.textContent = 'онлайн';
 
+    window.rizzSound.receive();
     state.history.push({ role: 'bot', text: replyText });
     appendBotMessage(replyText);
 
@@ -297,7 +468,7 @@
     }
   }
 
-  function appendUserMessage(text, analysis) {
+  function appendUserMessage(text, analysis, reaction) {
     const row = document.createElement('div');
     row.className = 'msg-row user';
 
@@ -306,7 +477,10 @@
     const sign = delta >= 0 ? '+' : '';
 
     row.innerHTML = `
-      <div class="msg-bubble">${escapeHtml(text)}</div>
+      <div class="msg-bubble-wrap">
+        <div class="msg-bubble">${escapeHtml(text)}</div>
+        ${reaction ? `<span class="msg-reaction">${reaction}</span>` : ''}
+      </div>
       <div class="msg-feedback ${fbClass}">${sign}${delta}% • ${escapeHtml(analysis.notes[0])}</div>
     `;
     el.chatFeed.appendChild(row);
@@ -335,6 +509,13 @@
     el.sympathyBar.style.width = `${state.sympathy}%`;
     el.turnNum.textContent = Math.min(state.turn + 1, MAX_TURNS);
 
+    if (state.combo >= 2) {
+      el.comboBadge.textContent = `🔥 Комбо x${state.combo}`;
+      el.comboBadge.classList.remove('hidden');
+    } else {
+      el.comboBadge.classList.add('hidden');
+    }
+
     let mood = '😐 Присматривается';
     if (state.sympathy >= 80) mood = '😍 Влюблена!';
     else if (state.sympathy >= 60) mood = '😊 Заинтересована';
@@ -351,6 +532,30 @@
       state.messageLogs,
       state.sympathy
     );
+    state.lastReport = report;
+
+    // Save progress & check achievements
+    const prevBest = state.progress.bestScores[state.persona.id] || 0;
+    if (report.totalScore > prevBest) {
+      state.progress.bestScores[state.persona.id] = report.totalScore;
+    }
+
+    if (report.verdictType === 'win') {
+      window.rizzSound.win();
+      if (!state.progress.conquered.includes(state.persona.id)) {
+        state.progress.conquered.push(state.persona.id);
+      }
+      unlockAchievement('first_win');
+      if (state.persona.difficulty === 'Хардкор') unlockAchievement('hardcore_win');
+      if (state.progress.conquered.length >= 5) unlockAchievement('collector_5');
+      if (state.progress.conquered.length >= 12) unlockAchievement('collector_12');
+    } else if (report.verdictType === 'fail') {
+      window.rizzSound.fail();
+    }
+
+    if (report.totalScore >= 88) unlockAchievement('s_rank');
+    saveProgress();
+    updateHeaderStats();
 
     el.verdictEmoji.textContent = report.verdictEmoji;
     el.verdictBadge.textContent = report.verdictBadge;
@@ -360,7 +565,6 @@
     el.verdictTitle.textContent = report.verdictTitle;
     el.verdictSummary.textContent = report.verdictSummary;
 
-    // Rank & Breakdown
     el.rankBadge.textContent = report.rank.letter;
     el.rankBadge.style.color = report.rank.color;
     el.rankTitle.textContent = report.rank.title;
@@ -370,7 +574,6 @@
     el.bdFlags.textContent = report.scoreBreakdown.redFlags;
     el.mainAdviceBox.textContent = `💡 ${report.scoreBreakdown.mainAdvice}`;
 
-    // Animate Radial Gauge + Score Counter
     const circumference = 364.42;
     el.gaugeRing.style.strokeDashoffset = circumference;
     el.totalScoreVal.textContent = '0';

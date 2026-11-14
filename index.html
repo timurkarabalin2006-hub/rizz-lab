@@ -11,18 +11,24 @@
 </head>
 <body>
   <div class="ambient-glow" aria-hidden="true"></div>
+  <div id="toastContainer" class="toast-container"></div>
 
   <header class="topbar">
     <div class="brand">
       <span class="brand-icon">💘</span>
       <div>
-        <div class="brand-title">RIZZ LAB</div>
+        <div class="brand-title">RIZZ LAB 3.0</div>
         <div class="brand-sub">СИМУЛЯТОР ПОДКАТОВ • 24 ДЕВУШКИ</div>
       </div>
     </div>
     <div class="topbar-actions">
-      <button id="aiSettingsBtn" class="btn-ghost" title="Подключить реальный ИИ по API (опционально)">⚙️ ИИ-режим</button>
-      <button id="backHomeBtn" class="btn-ghost hidden">← Выбрать другую</button>
+      <div class="player-pill" title="Твой прогресс и уровень">
+        ⭐ <span id="playerRankText">Новичок</span> • <span id="conqueredCount">0</span>/24
+      </div>
+      <button id="achievementsBtn" class="btn-ghost" title="Твои достижения">🏆 Ачивки</button>
+      <button id="soundBtn" class="btn-ghost" title="Звук вкл/выкл">🔊</button>
+      <button id="aiSettingsBtn" class="btn-ghost" title="Подключить реальный ИИ по API (опционально)">⚙️ ИИ</button>
+      <button id="backHomeBtn" class="btn-ghost hidden">← К анкетам</button>
     </div>
   </header>
 
@@ -30,9 +36,12 @@
     <!-- SCREEN 1: PERSONA SELECT -->
     <section id="selectScreen" class="screen active">
       <div class="hero">
-        <span class="badge">🔥 ТРЕНАЖЁР ХАРИЗМЫ 2.0</span>
-        <h1>Сможешь её закадрить?</h1>
-        <p>Выбери любую из 24 девушек, изучи её анкету и зацепи за 6 сообщений. Они понимают вопросы о себе, приглашения, комплименты и интересы — а в конце выдадут разбор по 5 критериям.</p>
+        <span class="badge">🔥 ТРЕНАЖЁР ХАРИЗМЫ 3.0</span>
+        <h1>Сможешь покорить всех 24?</h1>
+        <p>Выбери девушку или крутани рулетку, изучи её анкету и зацепи за 6 сообщений. Получай комбо, пользуйся советами Штурмана, открывай достижения и качай свой Индекс Харизмы.</p>
+        <div class="hero-cta-row">
+          <button id="randomMatchBtn" class="btn-primary btn-roulette">🎲 Случайный матч</button>
+        </div>
       </div>
 
       <div class="filter-bar">
@@ -41,6 +50,7 @@
           <button class="filter-pill" data-diff="Лёгкая">💚 Лёгкая</button>
           <button class="filter-pill" data-diff="Средняя">💛 Средняя</button>
           <button class="filter-pill" data-diff="Хардкор">❤️‍🔥 Хардкор</button>
+          <button class="filter-pill" data-diff="conquered">💘 Покорённые</button>
         </div>
         <input id="searchInput" class="search-input" type="search" placeholder="🔍 Поиск по имени или интересу (кофе, авто, игры...)" />
       </div>
@@ -78,7 +88,10 @@
               <div class="meter-track">
                 <div id="sympathyBar" class="meter-fill" style="width: 35%"></div>
               </div>
-              <div class="turn-counter">Ход: <span id="turnNum">1</span> / <span id="turnMax">6</span></div>
+              <div class="meter-footer">
+                <span id="comboBadge" class="combo-badge hidden">🔥 Комбо x2</span>
+                <span class="turn-counter">Ход: <span id="turnNum">1</span> / <span id="turnMax">6</span></span>
+              </div>
             </div>
           </div>
         </aside>
@@ -92,10 +105,22 @@
                 <div id="mhStatus" class="mh-status">онлайн</div>
               </div>
             </div>
-            <button id="finishEarlyBtn" class="btn-small">📊 Завершить и оценить</button>
+            <div class="mh-actions">
+              <button id="wingmanBtn" class="btn-small btn-wingman" title="Показать 3 идеи подката под эту девушку">💡 Штурман (<span id="wingmanCharges">2</span>)</button>
+              <button id="finishEarlyBtn" class="btn-small">📊 Оценить</button>
+            </div>
           </div>
 
           <div id="chatFeed" class="chat-feed"></div>
+
+          <!-- Wingman Drawer -->
+          <div id="wingmanDrawer" class="wingman-drawer hidden">
+            <div class="wingman-head">
+              <span>🕶️ Советы Штурмана (нажми, чтобы вставить):</span>
+              <button id="closeWingmanBtn" class="wingman-close">✕</button>
+            </div>
+            <div id="wingmanList" class="wingman-list"></div>
+          </div>
 
           <div id="quickTips" class="quick-tips">
             💡 Подсказка: спроси про её учёбу/работу, музыку, позови на встречу или обыграй интерес из анкеты!
@@ -170,11 +195,24 @@
 
         <div class="report-actions">
           <button id="retrySameBtn" class="btn-primary">🔄 Попробовать ещё раз</button>
-          <button id="chooseAnotherBtn" class="btn-secondary">💃 Выбрать другую девушку</button>
+          <button id="copyReportBtn" class="btn-secondary">📋 Скопировать отчёт</button>
+          <button id="chooseAnotherBtn" class="btn-secondary">💃 К другим девушкам</button>
         </div>
       </div>
     </section>
   </main>
+
+  <!-- ACHIEVEMENTS MODAL -->
+  <div id="achModal" class="modal-backdrop hidden">
+    <div class="modal-card modal-wide">
+      <div class="modal-head-row">
+        <h3>🏆 Твои достижения и статистика</h3>
+        <button id="closeAchBtn" class="wingman-close">✕</button>
+      </div>
+      <p class="modal-desc">Покоряй девушек, собирай комбо и открывай все награды RIZZ LAB.</p>
+      <div id="achGrid" class="ach-grid"></div>
+    </div>
+  </div>
 
   <!-- OPTIONAL AI API MODAL -->
   <div id="aiModal" class="modal-backdrop hidden">
@@ -201,6 +239,7 @@
     </div>
   </div>
 
+  <script src="sound.js"></script>
   <script src="personas.js"></script>
   <script src="evaluator.js"></script>
   <script src="app.js"></script>

@@ -348,6 +348,38 @@ window.RizzEvaluator = {
     return content;
   },
 
+  getEmojiReaction(analysis) {
+    if (analysis.category === 'rude') return '🚩';
+    if (analysis.category === 'cliche') return '😴';
+    if (analysis.category === 'insecure') return '😬';
+    if (analysis.matchedKeywords.length > 0 && analysis.hasInvite) return '❤️‍🔥';
+    if (analysis.matchedKeywords.length > 0) return '👀';
+    if (analysis.hasCompliment) return '🥰';
+    if (analysis.category === 'witty') return '😂';
+    if (analysis.hasInvite) return '🔥';
+    return analysis.sympathyDelta >= 5 ? '👍' : '';
+  },
+
+  getWingmanSuggestions(persona) {
+    const name = persona.name.split(',')[0];
+    const i1 = persona.interests[0] || 'музыка';
+    const i2 = persona.interests[1] || 'кофе';
+    return [
+      {
+        label: '🎯 По анкете',
+        text: `${name}, заметил в анкете «${i1}» — расскажи, что тебя в этом больше всего цепляет?`
+      },
+      {
+        label: '😏 С юмором',
+        text: `Официально заявляю: готов поспорить, что мой вкус в теме «${i2}» тебе точно зайдёт. Принимаешь пари? 😉`
+      },
+      {
+        label: '🔥 Уверенный план',
+        text: `Как насчёт того, чтобы не сидеть в чате, а устроить в эти выходные «${persona.idealDate}»?`
+      }
+    ];
+  },
+
   buildFinalReport(persona, messageLogs, finalSympathy) {
     if (messageLogs.length === 0) {
       return {
