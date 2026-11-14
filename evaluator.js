@@ -165,8 +165,201 @@ window.RizzEvaluator = {
     };
   },
 
+  // Exact personality & speech-style clone for Polina, 18
+  generatePolinaRealReply(text, persona, analysis, newSympathy, turn, maxTurns, usedReplies, ctx = {}) {
+    const lower = text.toLowerCase().replace(/ё/g, 'е');
+    const pick = (pool) => {
+      const choice = pool.find((p) => !usedReplies.has(p)) || pool[Math.floor(Math.random() * pool.length)];
+      usedReplies.add(choice);
+      return choice;
+    };
+
+    if (newSympathy <= 10) {
+      return {
+        text: 'Ну такое себе. Не вижу смысла продолжать, пока',
+        forceEnd: 'fail',
+        nextTopic: null
+      };
+    }
+
+    if (newSympathy >= 85 || (turn >= maxTurns && newSympathy >= 65)) {
+      return {
+        text: 'Лан, просто знай — ты реально интересный человек, ценю время) Пиши в тг @polina_18_real, погнали',
+        forceEnd: 'win',
+        nextTopic: null
+      };
+    }
+
+    if (turn >= maxTurns) {
+      return {
+        text: 'Ой все, я щас убегаю уже. Но поболтали норм, мб еще спишемся',
+        forceEnd: 'mid_or_fail',
+        nextTopic: null
+      };
+    }
+
+    if (analysis.category === 'rude') {
+      return {
+        text: 'Че за бред ты несешь. Еще раз так напишешь — сразу в чс улетишь 🤨',
+        forceEnd: null,
+        nextTopic: null
+      };
+    }
+
+    if (analysis.category === 'insecure') {
+      return {
+        text: 'Да не извиняйся ты, че как не уверенный. Нормально общайся и все',
+        forceEnd: null,
+        nextTopic: null
+      };
+    }
+
+    if (ctx.lastTopic === 'asked_date_time' && /(\d|вечер|завтра|сегодня|пятниц|суббот|воскр|центр|кафе|парк|часов)/i.test(lower)) {
+      return {
+        text: 'О, ну вот это по делу. Погнали тогда, я как раз свободна буду',
+        forceEnd: null,
+        nextTopic: null
+      };
+    }
+
+    if (/(геншин|genshin|примогем|баннер|ху тао|райдэн|фурин|архонт|бездн|акк)/i.test(lower)) {
+      return {
+        text: pick([
+          'ХАХАХХА кста если сольешь диалог — я тебя в геншине удаляю) Кто у тебя мейн вообще?',
+          'Оо шаришь. У меня там вечно 50/50 горит, но акк топовый. Какой ранг?'
+        ]),
+        forceEnd: null,
+        nextTopic: 'asked_game'
+      };
+    }
+
+    if (/(resident|резидент|re6|обитель|леон|ада|крис|джейк|шерри)/i.test(lower)) {
+      return {
+        text: pick([
+          'Так че, в резидент пойдем или нет? Или ты только в чате смелый)',
+          'Жиза, резидент топ. Только в коопе не тупи, я не люблю когда напарник падает каждые 5 минут ХАХАХ'
+        ]),
+        forceEnd: null,
+        nextTopic: 'asked_game'
+      };
+    }
+
+    if (/(косплей|парик|крафт|фест|аниме|манга|наруто|титан|бензопил)/i.test(lower)) {
+      return {
+        text: pick([
+          'Ой да, я вспомню свою анимешную натуру) Только нормальные тайтлы, а не кринжовую романтику на 12 серий',
+          'Кста косплей это кайф, тока времени жрет капец сколько. Ты сам бы замутил образ или чисто посмотреть?'
+        ]),
+        forceEnd: null,
+        nextTopic: 'asked_hobby'
+      };
+    }
+
+    if (/(тикток|тт|рилс|эдит|рекомендац|мем|видос)/i.test(lower)) {
+      return {
+        text: pick([
+          'ХАХАХХАХВ реально, у меня в тиктоке такая дичь иногда в реках, я ору просто. Кидай че там смешного видел',
+          'Ой, если у тебя видосы не прогружаются или мемы тухлые — сразу минус вайб'
+        ]),
+        forceEnd: null,
+        nextTopic: null
+      };
+    }
+
+    if (/(френдзон|дружб|парен|свободна|отношения)/i.test(lower)) {
+      return {
+        text: pick([
+          'Такой дружбы быть не может кстати. Либо френдзона, либо норм движение, че юлить',
+          'Пон. Но я не люблю пустые обещания, мне нужен чел который просто делает, а не воздух гоняет'
+        ]),
+        forceEnd: null,
+        nextTopic: null
+      };
+    }
+
+    if (/(шаурм|суши|ролл|бургер|пицц|еда|вкусн|кофе|чай|шоколад|слад)/i.test(lower)) {
+      return {
+        text: pick([
+          'Ой да, щас бы дубайский шоколад или че-нибудь вкусное без заморочек 😭 Ты сам что любишь?',
+          'Согл, еда это святое. Погнали тогда как-нибудь поедим, че в чате сидеть'
+        ]),
+        forceEnd: null,
+        nextTopic: null
+      };
+    }
+
+    if (/(кем работа|где работа|чем занимаешь|учишься|музык|слушаешь)/i.test(lower)) {
+      return {
+        text: `Да учусь, косплеем и играми занимаюсь по настроению. А ты сам чем живешь, кроме переписок?)`,
+        forceEnd: null,
+        nextTopic: 'asked_hobby'
+      };
+    }
+
+    if (analysis.hasInvite) {
+      if (newSympathy >= 50) {
+        return {
+          text: 'О, ну погнали. Во сколько и куда именно зовешь? Только конкретно, без «хз выбери сама»',
+          forceEnd: null,
+          nextTopic: 'asked_date_time'
+        };
+      }
+      return {
+        text: 'Эм, мы две минуты знакомы, че так сразу. Сначала заинтересуй нормально, а там посмотрим',
+        forceEnd: null,
+        nextTopic: null
+      };
+    }
+
+    if (analysis.hasCompliment) {
+      return {
+        text: pick([
+          'Спасибо) Но комплименты это база, ты лучше характером и юмором вывози',
+          'Ой ладно, засчитано 😳 Но просто за красивые слова я не таю, если че'
+        ]),
+        forceEnd: null,
+        nextTopic: null
+      };
+    }
+
+    if (analysis.category === 'cliche') {
+      return {
+        text: pick([
+          'Пон. Скучновато чет, придумай нормальный заход',
+          'Че за шаблон, серьезно? Давай поживее, я люблю угар в жизни — так веселее'
+        ]),
+        forceEnd: null,
+        nextTopic: null
+      };
+    }
+
+    if (analysis.category === 'witty') {
+      return {
+        text: pick([
+          'АХАХАХАХАХ бля, вот это реально смешно 😂 Ладно, зачет',
+          'ХАХАХХВ ну ты выдал. С тобой хотя бы не душно, продолжай'
+        ]),
+        forceEnd: null,
+        nextTopic: null
+      };
+    }
+
+    return {
+      text: pick([
+        'Пон. Ну типа звучит норм, а ты в жизни такой же или чисто в тг смелый?',
+        'Кста, расскажи че-нибудь угарное из жизни, а то я не люблю когда все слишком серьезно',
+        'Хз, пока 50 на 50. Удиви еще чем-нибудь, посмотрим че из этого выйдет'
+      ]),
+      forceEnd: null,
+      nextTopic: null
+    };
+  },
+
   // Realistic Context & Pop-Culture NLU Engine 2.0
   generateSmartReply(text, persona, analysis, newSympathy, turn, maxTurns, usedReplies, ctx = {}) {
+    if (persona.id === 'polina_18') {
+      return this.generatePolinaRealReply(text, persona, analysis, newSympathy, turn, maxTurns, usedReplies, ctx);
+    }
     const lower = text.toLowerCase().replace(/ё/g, 'е');
     const firstName = persona.name.split(',')[0];
     const isHard = persona.difficulty === 'Хардкор';
@@ -521,14 +714,19 @@ window.RizzEvaluator = {
   },
 
   async fetchAIReply(apiConfig, persona, history, sympathy, turn, maxTurns) {
+    const polinaStyleNote =
+      persona.id === 'polina_18'
+        ? `\nОСОБЫЙ СТИЛЬ РЕЧИ (копия реальной Полины): пиши короткими живыми сообщениями (1-2 фразы), почти без эмодзи (максимум скобочка ")" в конце или редкие 🤨/😳/😭), используй её реальные словечки ("че", "пон", "кста", "хз", "щас", "мб", "тока", "ой да", "согл", "погнали"), смейся капсом ("ХАХАХХА"). Прямолинейная, гордая, любит угар ("так веселее"), не терпит пустых обещаний, ценит спокойного уверенного парня, который делает, а не разводит воду.`
+        : '';
+
     const sysPrompt = `Ты общаешься в симуляторе знакомств от лица девушки: ${persona.name}.
 Вайб и био: ${persona.bio}
 Интересы: ${persona.interests.join(', ')}.
 Учёба/работа: ${persona.workOrStudy}.
 Музыка: ${persona.favMusic}.
 Идеальное свидание: ${persona.idealDate}.
-Сложность: ${persona.difficulty}. Симпатия сейчас: ${sympathy}/100. Ход ${turn} из ${maxTurns}.
-Пиши максимально живо, естественно, как реальная девушка 18-24 лет в переписке (сленг умеренно, эмоции, реакция на смысл, 1-3 коротких предложения).`;
+Сложность: ${persona.difficulty}. Симпатия сейчас: ${sympathy}/100. Ход ${turn} из ${maxTurns}.${polinaStyleNote}
+Пиши максимально живо, естественно, как реальная девушка 18-24 лет в переписке (1-3 коротких предложения).`;
 
     const messages = [
       { role: 'system', content: sysPrompt },
