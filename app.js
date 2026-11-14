@@ -197,15 +197,18 @@
     filtered.forEach((p) => {
       const isConquered = state.progress.conquered.includes(p.id);
       const best = state.progress.bestScores[p.id];
+      const diffKey = p.difficulty === 'Лёгкая' ? 'easy' : p.difficulty === 'Хардкор' ? 'hard' : 'medium';
+      const diffIcon = p.difficulty === 'Лёгкая' ? '💚' : p.difficulty === 'Хардкор' ? '❤️‍🔥' : '💛';
+
       const card = document.createElement('article');
-      card.className = 'persona-card' + (isConquered ? ' conquered' : '');
+      card.className = `persona-card card-${diffKey}` + (isConquered ? ' conquered' : '');
       card.innerHTML = `
         ${isConquered ? `<span class="conquered-badge">💘 Покорена${best ? ` (${best}/100)` : ''}</span>` : ''}
         <div class="persona-top">
           <div class="persona-emoji">${p.avatar}</div>
           <div>
             <h3 class="persona-title">${p.name}</h3>
-            <span class="persona-diff">Сложность: ${p.difficulty}</span>
+            <span class="persona-diff diff-${diffKey}">${diffIcon} ${p.difficulty}</span>
           </div>
         </div>
         <p class="persona-bio">${p.bio}</p>
