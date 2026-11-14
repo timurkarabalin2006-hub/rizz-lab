@@ -1,0 +1,208 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>RIZZ LAB — Тренажёр подкатов</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Space+Grotesk:wght@600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <div class="ambient-glow" aria-hidden="true"></div>
+
+  <header class="topbar">
+    <div class="brand">
+      <span class="brand-icon">💘</span>
+      <div>
+        <div class="brand-title">RIZZ LAB</div>
+        <div class="brand-sub">СИМУЛЯТОР ПОДКАТОВ • 24 ДЕВУШКИ</div>
+      </div>
+    </div>
+    <div class="topbar-actions">
+      <button id="aiSettingsBtn" class="btn-ghost" title="Подключить реальный ИИ по API (опционально)">⚙️ ИИ-режим</button>
+      <button id="backHomeBtn" class="btn-ghost hidden">← Выбрать другую</button>
+    </div>
+  </header>
+
+  <main class="container">
+    <!-- SCREEN 1: PERSONA SELECT -->
+    <section id="selectScreen" class="screen active">
+      <div class="hero">
+        <span class="badge">🔥 ТРЕНАЖЁР ХАРИЗМЫ 2.0</span>
+        <h1>Сможешь её закадрить?</h1>
+        <p>Выбери любую из 24 девушек, изучи её анкету и зацепи за 6 сообщений. Они понимают вопросы о себе, приглашения, комплименты и интересы — а в конце выдадут разбор по 5 критериям.</p>
+      </div>
+
+      <div class="filter-bar">
+        <div class="filter-pills" id="difficultyFilters">
+          <button class="filter-pill active" data-diff="all">Все (24)</button>
+          <button class="filter-pill" data-diff="Лёгкая">💚 Лёгкая</button>
+          <button class="filter-pill" data-diff="Средняя">💛 Средняя</button>
+          <button class="filter-pill" data-diff="Хардкор">❤️‍🔥 Хардкор</button>
+        </div>
+        <input id="searchInput" class="search-input" type="search" placeholder="🔍 Поиск по имени или интересу (кофе, авто, игры...)" />
+      </div>
+
+      <div id="personasGrid" class="personas-grid"></div>
+    </section>
+
+    <!-- SCREEN 2: CHAT SIMULATOR -->
+    <section id="chatScreen" class="screen">
+      <div class="chat-layout">
+        <aside class="profile-sidebar">
+          <div class="profile-card">
+            <div class="profile-avatar-wrap">
+              <div id="profileAvatar" class="profile-avatar">👩</div>
+              <span id="profileMoodBadge" class="mood-badge">😐 Присматривается</span>
+            </div>
+            <h2 id="profileName">Алина, 21</h2>
+            <p id="profileTagline" class="profile-tagline"></p>
+
+            <div class="bio-box">
+              <div class="bio-label">О себе:</div>
+              <p id="profileBio" class="bio-text"></p>
+            </div>
+
+            <div class="interests-box">
+              <div class="bio-label">Интересы (цепляйся за них!):</div>
+              <div id="profileInterests" class="tags-wrap"></div>
+            </div>
+
+            <div class="meter-box">
+              <div class="meter-header">
+                <span>Уровень симпатии</span>
+                <span id="sympathyPct">35%</span>
+              </div>
+              <div class="meter-track">
+                <div id="sympathyBar" class="meter-fill" style="width: 35%"></div>
+              </div>
+              <div class="turn-counter">Ход: <span id="turnNum">1</span> / <span id="turnMax">6</span></div>
+            </div>
+          </div>
+        </aside>
+
+        <div class="messenger-panel">
+          <div class="messenger-header">
+            <div class="mh-left">
+              <span id="mhAvatar" class="mh-avatar">👩</span>
+              <div>
+                <div id="mhName" class="mh-name">Алина</div>
+                <div id="mhStatus" class="mh-status">онлайн</div>
+              </div>
+            </div>
+            <button id="finishEarlyBtn" class="btn-small">📊 Завершить и оценить</button>
+          </div>
+
+          <div id="chatFeed" class="chat-feed"></div>
+
+          <div id="quickTips" class="quick-tips">
+            💡 Подсказка: спроси про её учёбу/работу, музыку, позови на встречу или обыграй интерес из анкеты!
+          </div>
+
+          <form id="chatForm" class="chat-input-bar">
+            <input
+              id="messageInput"
+              type="text"
+              placeholder="Напиши свой подкат или ответ..."
+              autocomplete="off"
+              maxlength="320"
+            />
+            <button type="submit" class="send-btn">Отправить ➤</button>
+          </form>
+        </div>
+      </div>
+    </section>
+
+    <!-- SCREEN 3: CRITERIA EVALUATION REPORT -->
+    <section id="reportScreen" class="screen">
+      <div class="report-card">
+        <div id="verdictEmoji" class="verdict-emoji">💘</div>
+        <div id="verdictBadge" class="verdict-badge">СВИДАНИЕ НАЗНАЧЕНО</div>
+        <h1 id="verdictTitle">Ты её покорил!</h1>
+        <p id="verdictSummary" class="verdict-summary"></p>
+
+        <div class="charisma-hero-card">
+          <div class="gauge-wrap">
+            <svg class="gauge-svg" viewBox="0 0 140 140">
+              <defs>
+                <linearGradient id="charismaGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+                  <stop offset="0%" stop-color="#ff3e8a" />
+                  <stop offset="55%" stop-color="#7c4dff" />
+                  <stop offset="100%" stop-color="#22d3ee" />
+                </linearGradient>
+              </defs>
+              <circle class="gauge-bg" cx="70" cy="70" r="58" />
+              <circle id="gaugeRing" class="gauge-ring" cx="70" cy="70" r="58" />
+            </svg>
+            <div class="gauge-center">
+              <div id="totalScoreVal" class="gauge-score">0</div>
+              <div class="gauge-sub">из 100</div>
+            </div>
+          </div>
+
+          <div class="charisma-meta">
+            <div class="rank-row">
+              <span id="rankBadge" class="rank-badge">A</span>
+              <div>
+                <div class="total-score-label">Общий индекс харизмы</div>
+                <div id="rankTitle" class="rank-title">Мастер обаяния</div>
+              </div>
+            </div>
+
+            <div class="breakdown-chips">
+              <span class="b-chip">🎯 Сложность: <strong id="bdDiff">Средняя</strong></span>
+              <span class="b-chip">💬 Глубина: <strong id="bdDepth">5 ход(а)</strong></span>
+              <span class="b-chip">🔥 Сильных ходов: <strong id="bdStrong">2</strong></span>
+              <span class="b-chip">🚩 Ошибок: <strong id="bdFlags">0</strong></span>
+            </div>
+
+            <div id="mainAdviceBox" class="advice-box"></div>
+          </div>
+        </div>
+
+        <h2 class="section-title">📋 Сверка по критериям</h2>
+        <div id="criteriaList" class="criteria-list"></div>
+
+        <h2 class="section-title">🔍 Разбор твоих сообщений</h2>
+        <div id="highlightsList" class="highlights-list"></div>
+
+        <div class="report-actions">
+          <button id="retrySameBtn" class="btn-primary">🔄 Попробовать ещё раз</button>
+          <button id="chooseAnotherBtn" class="btn-secondary">💃 Выбрать другую девушку</button>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <!-- OPTIONAL AI API MODAL -->
+  <div id="aiModal" class="modal-backdrop hidden">
+    <div class="modal-card">
+      <h3>⚙️ Режим живой нейросети (необязательно)</h3>
+      <p class="modal-desc">
+        По умолчанию девушки отвечают через встроенный умный NLU-движок (работает без ключей).
+        Если хочешь подключить настоящую LLM (OpenAI / Groq / OpenRouter / локальный Ollama), вставь настройки ниже:
+      </p>
+      <label class="modal-label">API Endpoint (OpenAI-compatible)</label>
+      <input id="aiEndpointInput" class="modal-input" type="text" placeholder="https://api.openai.com/v1/chat/completions" />
+
+      <label class="modal-label">API Key</label>
+      <input id="aiKeyInput" class="modal-input" type="password" placeholder="sk-..." />
+
+      <label class="modal-label">Модель</label>
+      <input id="aiModelInput" class="modal-input" type="text" placeholder="gpt-4o-mini" />
+
+      <div class="modal-actions">
+        <button id="saveAiBtn" class="btn-primary">Сохранить</button>
+        <button id="clearAiBtn" class="btn-secondary">Сбросить (встроенный NLU)</button>
+        <button id="closeAiBtn" class="btn-ghost">Закрыть</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="personas.js"></script>
+  <script src="evaluator.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
