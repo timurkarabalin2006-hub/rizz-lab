@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>RIZZ LAB — Тренажёр подкатов</title>
+  <title>RIZZ LAB 4.0 — Тренажёр подкатов</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Space+Grotesk:wght@600;700&display=swap" rel="stylesheet" />
@@ -17,7 +17,7 @@
     <div class="brand">
       <span class="brand-icon">💘</span>
       <div>
-        <div class="brand-title">RIZZ LAB 3.0</div>
+        <div class="brand-title">RIZZ LAB 4.0</div>
         <div class="brand-sub">СИМУЛЯТОР ПОДКАТОВ • 100 ДЕВУШЕК</div>
       </div>
     </div>
@@ -25,22 +25,32 @@
       <div class="player-pill" title="Твой прогресс и уровень">
         ⭐ <span id="playerRankText">Новичок</span> • <span id="conqueredCount">0</span>/100
       </div>
-      <button id="achievementsBtn" class="btn-ghost" title="Твои достижения">🏆 Ачивки</button>
       <button id="soundBtn" class="btn-ghost" title="Звук вкл/выкл">🔊</button>
       <button id="aiSettingsBtn" class="btn-ghost" title="Подключить реальный ИИ по API (опционально)">⚙️ ИИ</button>
       <button id="backHomeBtn" class="btn-ghost hidden">← К анкетам</button>
     </div>
   </header>
 
+  <!-- MAIN NAVIGATION TABS -->
+  <nav id="mainTabs" class="tabs-nav">
+    <button class="tab-btn active" data-tab="select">💘 Анкеты (100)</button>
+    <button class="tab-btn" data-tab="myprofile">😎 Моя анкета</button>
+    <button class="tab-btn" data-tab="blitz">⚡ Блиц-режим</button>
+    <button class="tab-btn" data-tab="openers">🎯 Тренажёр заходов</button>
+    <button class="tab-btn" data-tab="history">📊 История и Стата</button>
+    <button class="tab-btn" data-tab="achievements">🏆 Ачивки</button>
+  </nav>
+
   <main class="container">
-    <!-- SCREEN 1: PERSONA SELECT -->
+    <!-- TAB 1: PERSONA SELECT -->
     <section id="selectScreen" class="screen active">
       <div class="hero">
-        <span class="badge">🔥 ТРЕНАЖЁР ХАРИЗМЫ 3.0</span>
+        <span class="badge">🔥 ТРЕНАЖЁР ХАРИЗМЫ 4.0</span>
         <h1>Сможешь покорить всех 100?</h1>
-        <p>Выбери девушку (18–24 года) или крутани рулетку, изучи её анкету и зацепи за 6 сообщений. Получай комбо, пользуйся советами Штурмана, открывай достижения и качай свой Индекс Харизмы.</p>
+        <p>Заполни свою анкету, выбери девушку или крутани рулетку. Общие интересы из твоей анкеты дают стартовый бонус к симпатии!</p>
         <div class="hero-cta-row">
           <button id="randomMatchBtn" class="btn-primary btn-roulette">🎲 Случайный матч</button>
+          <button id="openCustomGirlBtn" class="btn-secondary">➕ Добавить свою девушку</button>
         </div>
       </div>
 
@@ -52,13 +62,151 @@
           <button class="filter-pill" data-diff="Хардкор">❤️‍🔥 Хардкор</button>
           <button class="filter-pill" data-diff="conquered">💘 Покорённые</button>
         </div>
-        <input id="searchInput" class="search-input" type="search" placeholder="🔍 Поиск по имени или интересу (кофе, авто, игры...)" />
+        <input id="searchInput" class="search-input" type="search" placeholder="🔍 Поиск по имени или интересу (полина, геншин, steam...)" />
       </div>
 
       <div id="personasGrid" class="personas-grid"></div>
     </section>
 
-    <!-- SCREEN 2: CHAT SIMULATOR -->
+    <!-- TAB 2: MY PROFILE (USER ANKETA) -->
+    <section id="myprofileScreen" class="screen">
+      <div class="panel-card">
+        <div class="panel-head-flex">
+          <div>
+            <h2>😎 Твоя анкета парня</h2>
+            <p class="panel-sub">Девушки видят твою анкету! Если ваши интересы совпадают, ты получаешь бонус к симпатии в начале чата, а она может обращаться к тебе по имени.</p>
+          </div>
+          <div id="myProfilePreviewBadge" class="preview-badge">Активна</div>
+        </div>
+
+        <form id="myProfileForm" class="profile-form-grid">
+          <div class="form-col">
+            <label class="modal-label">Твой аватар</label>
+            <div id="myAvatarPicker" class="avatar-picker">
+              <button type="button" class="av-opt active" data-av="😎">😎</button>
+              <button type="button" class="av-opt" data-av="🦊">🦊</button>
+              <button type="button" class="av-opt" data-av="🐺">🐺</button>
+              <button type="button" class="av-opt" data-av="🔥">🔥</button>
+              <button type="button" class="av-opt" data-av="🎮">🎮</button>
+              <button type="button" class="av-opt" data-av="🏎️">🏎️</button>
+              <button type="button" class="av-opt" data-av="🎸">🎸</button>
+              <button type="button" class="av-opt" data-av="👑">👑</button>
+            </div>
+
+            <label class="modal-label" for="myNameInput">Твоё имя</label>
+            <input id="myNameInput" class="modal-input" type="text" maxlength="20" placeholder="Например: Тимур" />
+
+            <label class="modal-label" for="myAgeInput">Возраст</label>
+            <input id="myAgeInput" class="modal-input" type="number" min="16" max="45" placeholder="20" />
+
+            <label class="modal-label" for="myWorkInput">Чем занимаешься / учёба</label>
+            <input id="myWorkInput" class="modal-input" type="text" maxlength="60" placeholder="Программист / учусь на 2 курсе" />
+          </div>
+
+          <div class="form-col">
+            <label class="modal-label" for="myBioInput">О себе (видит девушка)</label>
+            <textarea id="myBioInput" class="modal-input textarea-input" rows="3" maxlength="200" placeholder="Люблю ночной город, игры в Steam, хороший юмор и спонтанные прогулки..."></textarea>
+
+            <label class="modal-label" for="myInterestsInput">Твои интересы (через запятую — дают бонус при совпадении!)</label>
+            <input id="myInterestsInput" class="modal-input" type="text" placeholder="genshin, resident evil 6, аниме, кофе, steam" />
+
+            <label class="modal-label" for="myStyleSelect">Твой стиль общения</label>
+            <select id="myStyleSelect" class="modal-input">
+              <option value="Уверенный">🦁 Уверенный и прямой</option>
+              <option value="С юмором">😂 С юмором и мемами</option>
+              <option value="Романтик">🌸 Тёплый романтик</option>
+              <option value="Загадочный">🕶️ Дерзкий и загадочный</option>
+            </select>
+
+            <button type="submit" class="btn-primary save-profile-btn">💾 Сохранить мою анкету</button>
+          </div>
+        </form>
+      </div>
+    </section>
+
+    <!-- TAB 3: BLITZ MODE -->
+    <section id="blitzScreen" class="screen">
+      <div class="panel-card center-panel">
+        <span class="badge">⚡ БЛИЦ-ИСПЫТАНИЕ</span>
+        <h2>Успей закадрить на таймере!</h2>
+        <p class="panel-sub">На каждое сообщение у тебя всего <strong>18 секунд</strong>. Если затянешь с ответом — симпатия падает на 10%. Выбирай уровень блица:</p>
+
+        <div class="blitz-cards">
+          <div class="blitz-card">
+            <div class="blitz-icon">💚</div>
+            <h3>Лёгкий блиц</h3>
+            <p>Случайная девушка (Лёгкая) • 18 сек на ход</p>
+            <button class="btn-primary" data-blitz="Лёгкая">Погнали</button>
+          </div>
+          <div class="blitz-card">
+            <div class="blitz-icon">💛</div>
+            <h3>Средний блиц</h3>
+            <p>Случайная девушка (Средняя) • 18 сек на ход</p>
+            <button class="btn-primary" data-blitz="Средняя">Погнали</button>
+          </div>
+          <div class="blitz-card">
+            <div class="blitz-icon">❤️‍🔥</div>
+            <h3>Хардкор блиц</h3>
+            <p>Случайная девушка (Хардкор) • 15 сек на ход!</p>
+            <button class="btn-primary" data-blitz="Хардкор">Рискнуть</button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- TAB 4: OPENER TRAINER -->
+    <section id="openersScreen" class="screen">
+      <div class="panel-card">
+        <div class="panel-head-flex">
+          <div>
+            <h2>🎯 Тренажёр первых подкатов</h2>
+            <p class="panel-sub">Потренируй только первое сообщение в разных жизненных ситуациях и сразу узнай его оценку по 5 критериям!</p>
+          </div>
+          <button id="nextOpenerCaseBtn" class="btn-secondary">🔄 Другая ситуация</button>
+        </div>
+
+        <div class="opener-scenario-box">
+          <div id="openerSituationTag" class="badge">СИТУАЦИЯ</div>
+          <h3 id="openerTargetName">Девушка в кофейне</h3>
+          <p id="openerTargetDesc" class="opener-desc"></p>
+        </div>
+
+        <form id="openerTestForm" class="opener-test-form">
+          <input id="openerTestInput" class="modal-input" type="text" placeholder="Напиши свой первый подкат для этой ситуации..." autocomplete="off" />
+          <button type="submit" class="btn-primary">⚡ Проверить заход</button>
+        </form>
+
+        <div id="openerResultBox" class="opener-result hidden"></div>
+      </div>
+    </section>
+
+    <!-- TAB 5: HISTORY & STATS -->
+    <section id="historyScreen" class="screen">
+      <div class="panel-card">
+        <div class="panel-head-flex">
+          <div>
+            <h2>📊 Твоя статистика и история</h2>
+            <p class="panel-sub">Все завершённые диалоги, средний индекс харизмы и твои лучшие победы.</p>
+          </div>
+          <button id="clearHistoryBtn" class="btn-ghost">🗑️ Очистить историю</button>
+        </div>
+
+        <div id="statsSummaryGrid" class="stats-summary-grid"></div>
+        <h3 class="section-title">🕒 Последние диалоги</h3>
+        <div id="historyList" class="history-list"></div>
+      </div>
+    </section>
+
+    <!-- TAB 6: ACHIEVEMENTS -->
+    <section id="achievementsScreen" class="screen">
+      <div class="panel-card">
+        <h2>🏆 Достижения RIZZ LAB</h2>
+        <p class="panel-sub">Покоряй девушек, выигрывай в Блице, делай комбо и открывай все награды.</p>
+        <div id="achGrid" class="ach-grid"></div>
+      </div>
+    </section>
+
+    <!-- CHAT SIMULATOR SCREEN -->
     <section id="chatScreen" class="screen">
       <div class="chat-layout">
         <aside class="profile-sidebar">
@@ -76,9 +224,11 @@
             </div>
 
             <div class="interests-box">
-              <div class="bio-label">Интересы (цепляйся за них!):</div>
+              <div class="bio-label">Интересы:</div>
               <div id="profileInterests" class="tags-wrap"></div>
             </div>
+
+            <div id="myMatchBonusBox" class="match-bonus-box hidden"></div>
 
             <div class="meter-box">
               <div class="meter-header">
@@ -90,6 +240,7 @@
               </div>
               <div class="meter-footer">
                 <span id="comboBadge" class="combo-badge hidden">🔥 Комбо x2</span>
+                <span id="blitzTimerBadge" class="blitz-timer hidden">⏱️ 18с</span>
                 <span class="turn-counter">Ход: <span id="turnNum">1</span> / <span id="turnMax">6</span></span>
               </div>
             </div>
@@ -106,12 +257,22 @@
               </div>
             </div>
             <div class="mh-actions">
-              <button id="wingmanBtn" class="btn-small btn-wingman" title="Показать 3 идеи подката под эту девушку">💡 Штурман (<span id="wingmanCharges">2</span>)</button>
+              <button id="stickerBtn" class="btn-small" title="Отправить мем или стикер">🎭 Мем</button>
+              <button id="wingmanBtn" class="btn-small btn-wingman" title="Показать 3 идеи подката">💡 Штурман (<span id="wingmanCharges">2</span>)</button>
               <button id="finishEarlyBtn" class="btn-small">📊 Оценить</button>
             </div>
           </div>
 
           <div id="chatFeed" class="chat-feed"></div>
+
+          <!-- Sticker / Meme Drawer -->
+          <div id="stickerDrawer" class="wingman-drawer hidden">
+            <div class="wingman-head">
+              <span>🎭 Отправить мем-стикер (влияет на настроение!):</span>
+              <button id="closeStickerBtn" class="wingman-close">✕</button>
+            </div>
+            <div id="stickerList" class="sticker-grid"></div>
+          </div>
 
           <!-- Wingman Drawer -->
           <div id="wingmanDrawer" class="wingman-drawer hidden">
@@ -123,7 +284,7 @@
           </div>
 
           <div id="quickTips" class="quick-tips">
-            💡 Подсказка: спроси про её учёбу/работу, музыку, позови на встречу или обыграй интерес из анкеты!
+            💡 Подсказка: общайся свободно на любые темы, шути или цепляйся за анкету!
           </div>
 
           <form id="chatForm" class="chat-input-bar">
@@ -140,7 +301,7 @@
       </div>
     </section>
 
-    <!-- SCREEN 3: CRITERIA EVALUATION REPORT -->
+    <!-- REPORT SCREEN -->
     <section id="reportScreen" class="screen">
       <div class="report-card">
         <div id="verdictEmoji" class="verdict-emoji">💘</div>
@@ -202,15 +363,27 @@
     </section>
   </main>
 
-  <!-- ACHIEVEMENTS MODAL -->
-  <div id="achModal" class="modal-backdrop hidden">
-    <div class="modal-card modal-wide">
-      <div class="modal-head-row">
-        <h3>🏆 Твои достижения и статистика</h3>
-        <button id="closeAchBtn" class="wingman-close">✕</button>
+  <!-- CUSTOM GIRL MODAL -->
+  <div id="customGirlModal" class="modal-backdrop hidden">
+    <div class="modal-card">
+      <h3>➕ Создать свою девушку</h3>
+      <p class="modal-desc">Добавь любую девушку со своими интересами и характером в общий список.</p>
+      <label class="modal-label">Имя и возраст</label>
+      <input id="cgNameInput" class="modal-input" type="text" placeholder="Например: Лиза, 19" />
+      <label class="modal-label">Сложность</label>
+      <select id="cgDiffInput" class="modal-input">
+        <option value="Лёгкая">💚 Лёгкая</option>
+        <option value="Средняя" selected>💛 Средняя</option>
+        <option value="Хардкор">❤️‍🔥 Хардкор</option>
+      </select>
+      <label class="modal-label">О себе</label>
+      <input id="cgBioInput" class="modal-input" type="text" placeholder="Любит аниме, ночные прогулки и вкусный кофе" />
+      <label class="modal-label">Интересы (через запятую)</label>
+      <input id="cgInterestsInput" class="modal-input" type="text" placeholder="аниме, кофе, музыка, тикток" />
+      <div class="modal-actions">
+        <button id="saveCustomGirlBtn" class="btn-primary">Добавить</button>
+        <button id="closeCustomGirlBtn" class="btn-ghost">Отмена</button>
       </div>
-      <p class="modal-desc">Покоряй девушек, собирай комбо и открывай все награды RIZZ LAB.</p>
-      <div id="achGrid" class="ach-grid"></div>
     </div>
   </div>
 

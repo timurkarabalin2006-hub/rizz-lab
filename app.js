@@ -2,6 +2,8 @@
   const MAX_TURNS = 6;
   const AI_STORAGE_KEY = 'rizz_lab_ai_cfg';
   const PROGRESS_KEY = 'rizz_lab_progress_v3';
+  const USER_PROFILE_KEY = 'rizz_lab_user_profile_v4';
+  const CUSTOM_GIRLS_KEY = 'rizz_lab_custom_girls_v4';
 
   const ACHIEVEMENTS = [
     { id: 'first_win', icon: '💘', name: 'Первый контакт', desc: 'Покори свою первую девушку' },
@@ -9,8 +11,44 @@
     { id: 's_rank', icon: '🌟', name: 'S-Ранг', desc: 'Набери 88+ Индекса Харизмы за диалог' },
     { id: 'combo_3', icon: '🔥', name: 'В потоке', desc: 'Собери комбо x3 из сильных сообщений подряд' },
     { id: 'sniper', icon: '🎯', name: 'Снайпер анкеты', desc: 'Попади в 2+ интереса из анкеты в одном сообщении' },
+    { id: 'blitz_win', icon: '⚡', name: 'Молниеносный', desc: 'Выиграй диалог в Блиц-режиме на таймере' },
     { id: 'collector_5', icon: '💎', name: 'Сердцеед', desc: 'Покори 5 разных девушек' },
     { id: 'collector_12', icon: '🏆', name: 'Мастер Rizz', desc: 'Покори 12 разных девушек' }
+  ];
+
+  const MEME_STICKERS = [
+    { label: '🐱 Кот с цветами', text: '🌷 (отправил мем: кот держит букет для тебя)' },
+    { label: '😎 Сигма-улыбка', text: '😎 (отправил стикер: уверенный взгляд)' },
+    { label: '🎮 Погнали в катку', text: '🎮 (отправил мем: «бросай всё, го в кооп»)' },
+    { label: '☕ Зову на раф', text: '☕ (отправил стикер: горячий кофе и два билета)' },
+    { label: '😂 АХАХА жиза', text: '😂 (отправил мем: смеётся до слёз)' }
+  ];
+
+  const OPENER_CASES = [
+    {
+      tag: 'КОФЕЙНЯ',
+      title: 'Девушка в наушниках выбирает раф',
+      desc: 'Она стоит у стойки в оверсайз-худи, на ноутбуке стикеры из аниме. Ты стоишь за ней.',
+      keywords: ['кофе', 'раф', 'музык', 'трек', 'аниме', 'стикер', 'ноут', 'худи']
+    },
+    {
+      tag: 'STEAM / DISCORD',
+      title: 'Тиммейтка в лобби CS2 / Valorant',
+      desc: 'Вы только что затащили катку 13:11, она на первом месте в табе и смеётся в войсе.',
+      keywords: ['катка', 'таб', 'эйс', 'тиммейт', 'стим', 'дискорд', 'кс', 'валорант', 'дуо']
+    },
+    {
+      tag: 'TIKTOK / СОЦСЕТИ',
+      title: 'Девушка выложила эстетичный рилс',
+      desc: 'В комментариях куча банальных «красотка 🔥». Нужно написать в личку так, чтобы она ответила.',
+      keywords: ['вайб', 'монтаж', 'трек', 'рилс', 'тикток', 'сняла', 'идея', 'стиль']
+    },
+    {
+      tag: 'ПРОГУЛКА / СКЕЙТПАРК',
+      title: 'Блондинка сидит на лавочке со скейтом',
+      desc: 'Вечер, закат, рядом стоит стакан бабл-ти. Смотрит в телефон.',
+      keywords: ['скейт', 'бабл', 'закат', 'трюк', 'доск', 'вечер', 'прогул']
+    }
   ];
 
   const state = {
@@ -19,6 +57,9 @@
     turn: 0,
     combo: 0,
     wingmanLeft: 2,
+    isBlitz: false,
+    blitzSeconds: 18,
+    blitzTimerId: null,
     history: [],
     messageLogs: [],
     usedReplies: new Set(),
@@ -27,33 +68,86 @@
     ended: false,
     diffFilter: 'all',
     searchQuery: '',
+    openerIdx: 0,
     lastReport: null,
     aiConfig: loadJson(AI_STORAGE_KEY, null),
-    progress: loadJson(PROGRESS_KEY, { conquered: [], bestScores: {}, achievements: [] })
+    userProfile: loadJson(USER_PROFILE_KEY, {
+      avatar: '😎',
+      name: 'Тимур',
+      age: 20,
+      work: 'Учусь и мучу проекты',
+      bio: 'Люблю ночной город, игры в Steam, хороший юмор и движ',
+      interests: ['genshin', 'resident evil 6', 'аниме', 'кофе', 'steam'],
+      style: 'Уверенный'
+    }),
+    customGirls: loadJson(CUSTOM_GIRLS_KEY, []),
+    progress: loadJson(PROGRESS_KEY, { conquered: [], bestScores: {}, achievements: [], logs: [] })
   };
+
+  // Merge saved custom girls into window.PERSONAS
+  if (Array.isArray(state.customGirls) && state.customGirls.length > 0) {
+    window.PERSONAS = [...state.customGirls, ...window.PERSONAS];
+  }
 
   const screens = {
     select: document.getElementById('selectScreen'),
+    myprofile: document.getElementById('myprofileScreen'),
+    blitz: document.getElementById('blitzScreen'),
+    openers: document.getElementById('openersScreen'),
+    history: document.getElementById('historyScreen'),
+    achievements: document.getElementById('achievementsScreen'),
     chat: document.getElementById('chatScreen'),
     report: document.getElementById('reportScreen')
   };
 
   const el = {
+    mainTabs: document.getElementById('mainTabs'),
     toastContainer: document.getElementById('toastContainer'),
     playerRankText: document.getElementById('playerRankText'),
     conqueredCount: document.getElementById('conqueredCount'),
-    achievementsBtn: document.getElementById('achievementsBtn'),
     soundBtn: document.getElementById('soundBtn'),
     backHomeBtn: document.getElementById('backHomeBtn'),
     randomMatchBtn: document.getElementById('randomMatchBtn'),
+    openCustomGirlBtn: document.getElementById('openCustomGirlBtn'),
     personasGrid: document.getElementById('personasGrid'),
     difficultyFilters: document.getElementById('difficultyFilters'),
     searchInput: document.getElementById('searchInput'),
 
-    achModal: document.getElementById('achModal'),
-    achGrid: document.getElementById('achGrid'),
-    closeAchBtn: document.getElementById('closeAchBtn'),
+    // My profile
+    myProfileForm: document.getElementById('myProfileForm'),
+    myAvatarPicker: document.getElementById('myAvatarPicker'),
+    myNameInput: document.getElementById('myNameInput'),
+    myAgeInput: document.getElementById('myAgeInput'),
+    myWorkInput: document.getElementById('myWorkInput'),
+    myBioInput: document.getElementById('myBioInput'),
+    myInterestsInput: document.getElementById('myInterestsInput'),
+    myStyleSelect: document.getElementById('myStyleSelect'),
 
+    // Openers
+    openerSituationTag: document.getElementById('openerSituationTag'),
+    openerTargetName: document.getElementById('openerTargetName'),
+    openerTargetDesc: document.getElementById('openerTargetDesc'),
+    nextOpenerCaseBtn: document.getElementById('nextOpenerCaseBtn'),
+    openerTestForm: document.getElementById('openerTestForm'),
+    openerTestInput: document.getElementById('openerTestInput'),
+    openerResultBox: document.getElementById('openerResultBox'),
+
+    // History & Ach
+    statsSummaryGrid: document.getElementById('statsSummaryGrid'),
+    historyList: document.getElementById('historyList'),
+    clearHistoryBtn: document.getElementById('clearHistoryBtn'),
+    achGrid: document.getElementById('achGrid'),
+
+    // Custom Girl Modal
+    customGirlModal: document.getElementById('customGirlModal'),
+    cgNameInput: document.getElementById('cgNameInput'),
+    cgDiffInput: document.getElementById('cgDiffInput'),
+    cgBioInput: document.getElementById('cgBioInput'),
+    cgInterestsInput: document.getElementById('cgInterestsInput'),
+    saveCustomGirlBtn: document.getElementById('saveCustomGirlBtn'),
+    closeCustomGirlBtn: document.getElementById('closeCustomGirlBtn'),
+
+    // AI Modal
     aiSettingsBtn: document.getElementById('aiSettingsBtn'),
     aiModal: document.getElementById('aiModal'),
     aiEndpointInput: document.getElementById('aiEndpointInput'),
@@ -63,21 +157,28 @@
     clearAiBtn: document.getElementById('clearAiBtn'),
     closeAiBtn: document.getElementById('closeAiBtn'),
 
+    // Chat
     profileAvatar: document.getElementById('profileAvatar'),
     profileMoodBadge: document.getElementById('profileMoodBadge'),
     profileName: document.getElementById('profileName'),
     profileTagline: document.getElementById('profileTagline'),
     profileBio: document.getElementById('profileBio'),
     profileInterests: document.getElementById('profileInterests'),
+    myMatchBonusBox: document.getElementById('myMatchBonusBox'),
     sympathyPct: document.getElementById('sympathyPct'),
     sympathyBar: document.getElementById('sympathyBar'),
     comboBadge: document.getElementById('comboBadge'),
+    blitzTimerBadge: document.getElementById('blitzTimerBadge'),
     turnNum: document.getElementById('turnNum'),
     turnMax: document.getElementById('turnMax'),
 
     mhAvatar: document.getElementById('mhAvatar'),
     mhName: document.getElementById('mhName'),
     mhStatus: document.getElementById('mhStatus'),
+    stickerBtn: document.getElementById('stickerBtn'),
+    stickerDrawer: document.getElementById('stickerDrawer'),
+    stickerList: document.getElementById('stickerList'),
+    closeStickerBtn: document.getElementById('closeStickerBtn'),
     wingmanBtn: document.getElementById('wingmanBtn'),
     wingmanCharges: document.getElementById('wingmanCharges'),
     wingmanDrawer: document.getElementById('wingmanDrawer'),
@@ -88,6 +189,7 @@
     chatForm: document.getElementById('chatForm'),
     messageInput: document.getElementById('messageInput'),
 
+    // Report
     verdictEmoji: document.getElementById('verdictEmoji'),
     verdictBadge: document.getElementById('verdictBadge'),
     verdictTitle: document.getElementById('verdictTitle'),
@@ -127,7 +229,8 @@
     const count = state.progress.conquered.length;
     el.conqueredCount.textContent = count;
     let rank = 'Новичок';
-    if (count >= 18) rank = 'Легенда';
+    if (count >= 40) rank = 'Бог Rizz';
+    else if (count >= 18) rank = 'Легенда';
     else if (count >= 10) rank = 'Мастер Rizz';
     else if (count >= 5) rank = 'Сердцеед';
     else if (count >= 2) rank = 'Романтик';
@@ -161,18 +264,132 @@
   function init() {
     updateAiBtnLabel();
     updateHeaderStats();
+    populateMyProfileForm();
     renderPersonas();
+    renderOpenerCase();
+    renderStickers();
     bindEvents();
   }
 
   function showScreen(name) {
+    stopBlitzTimer();
     Object.values(screens).forEach((s) => s.classList.remove('active'));
     screens[name].classList.add('active');
-    el.backHomeBtn.classList.toggle('hidden', name === 'select');
+
+    const isChatOrReport = name === 'chat' || name === 'report';
+    el.mainTabs.classList.toggle('hidden', isChatOrReport);
+    el.backHomeBtn.classList.toggle('hidden', !isChatOrReport);
+
+    if (!isChatOrReport) {
+      el.mainTabs.querySelectorAll('.tab-btn').forEach((b) => {
+        b.classList.toggle('active', b.dataset.tab === name);
+      });
+    }
+
     if (name === 'select') {
       updateHeaderStats();
       renderPersonas();
+    } else if (name === 'history') {
+      renderHistoryTab();
+    } else if (name === 'achievements') {
+      renderAchievementsTab();
     }
+  }
+
+  // --- MY PROFILE ---
+  function populateMyProfileForm() {
+    const p = state.userProfile;
+    el.myNameInput.value = p.name || '';
+    el.myAgeInput.value = p.age || 20;
+    el.myWorkInput.value = p.work || '';
+    el.myBioInput.value = p.bio || '';
+    el.myInterestsInput.value = (p.interests || []).join(', ');
+    el.myStyleSelect.value = p.style || 'Уверенный';
+    el.myAvatarPicker.querySelectorAll('.av-opt').forEach((b) => {
+      b.classList.toggle('active', b.dataset.av === p.avatar);
+    });
+  }
+
+  // --- OPENER TRAINER ---
+  function renderOpenerCase() {
+    const c = OPENER_CASES[state.openerIdx % OPENER_CASES.length];
+    el.openerSituationTag.textContent = `СИТУАЦИЯ: ${c.tag}`;
+    el.openerTargetName.textContent = c.title;
+    el.openerTargetDesc.textContent = c.desc;
+    el.openerResultBox.classList.add('hidden');
+  }
+
+  // --- HISTORY & ACHIEVEMENTS TABS ---
+  function renderHistoryTab() {
+    const logs = state.progress.logs || [];
+    const total = logs.length;
+    const wins = logs.filter((l) => l.verdict === 'win').length;
+    const avgScore = total ? Math.round(logs.reduce((s, l) => s + l.score, 0) / total) : 0;
+    const bestScore = total ? Math.max(...logs.map((l) => l.score)) : 0;
+
+    el.statsSummaryGrid.innerHTML = `
+      <div class="stat-card"><div class="stat-val">${total}</div><div class="stat-lbl">Всего диалогов</div></div>
+      <div class="stat-card"><div class="stat-val">${wins}</div><div class="stat-lbl">Успешных свиданий</div></div>
+      <div class="stat-card"><div class="stat-val">${avgScore}</div><div class="stat-lbl">Средний индекс</div></div>
+      <div class="stat-card"><div class="stat-val">${bestScore}</div><div class="stat-lbl">Рекорд харизмы</div></div>
+    `;
+
+    el.historyList.innerHTML = '';
+    if (logs.length === 0) {
+      el.historyList.innerHTML = `<p style="color:var(--text-muted)">Пока нет завершённых диалогов. Выбери девушку и начни!</p>`;
+      return;
+    }
+
+    logs.slice(0, 30).forEach((item) => {
+      const row = document.createElement('div');
+      row.className = 'history-row';
+      row.innerHTML = `
+        <div class="history-left">
+          <div class="history-av">${item.avatar}</div>
+          <div>
+            <div class="history-name">${escapeHtml(item.name)} ${item.isBlitz ? '⚡' : ''}</div>
+            <div class="history-sub">${item.badge} • ${item.date}</div>
+          </div>
+        </div>
+        <div class="history-score" style="color:${item.verdict === 'win' ? '#2ecc71' : item.verdict === 'mid' ? '#facc15' : '#ff4d4f'}">
+          ${item.score}/100 (Ранг ${item.rank})
+        </div>
+      `;
+      el.historyList.appendChild(row);
+    });
+  }
+
+  function renderAchievementsTab() {
+    el.achGrid.innerHTML = '';
+    ACHIEVEMENTS.forEach((a) => {
+      const unlocked = state.progress.achievements.includes(a.id);
+      const div = document.createElement('div');
+      div.className = 'ach-card' + (unlocked ? ' unlocked' : '');
+      div.innerHTML = `
+        <div class="ach-icon">${a.icon}</div>
+        <div>
+          <div class="ach-name">${a.name}</div>
+          <div class="ach-desc">${a.desc}</div>
+        </div>
+      `;
+      el.achGrid.appendChild(div);
+    });
+  }
+
+  function renderStickers() {
+    el.stickerList.innerHTML = '';
+    MEME_STICKERS.forEach((st) => {
+      const btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = 'sticker-item';
+      btn.textContent = st.label;
+      btn.addEventListener('click', () => {
+        if (state.isTyping || state.ended) return;
+        el.stickerDrawer.classList.add('hidden');
+        handleUserMessage(st.text);
+      });
+      el.stickerList.appendChild(btn);
+    });
   }
 
   function renderPersonas() {
@@ -219,33 +436,20 @@
         <button class="btn-primary" data-id="${p.id}">💬 Начать диалог</button>
       `;
 
-      card.querySelector('button').addEventListener('click', () => startChat(p));
+      card.querySelector('button').addEventListener('click', () => startChat(p, false));
       el.personasGrid.appendChild(card);
     });
   }
 
-  function renderAchievementsModal() {
-    el.achGrid.innerHTML = '';
-    ACHIEVEMENTS.forEach((a) => {
-      const unlocked = state.progress.achievements.includes(a.id);
-      const div = document.createElement('div');
-      div.className = 'ach-card' + (unlocked ? ' unlocked' : '');
-      div.innerHTML = `
-        <div class="ach-icon">${a.icon}</div>
-        <div>
-          <div class="ach-name">${a.name}</div>
-          <div class="ach-desc">${a.desc}</div>
-        </div>
-      `;
-      el.achGrid.appendChild(div);
-    });
-  }
-
   function bindEvents() {
+    el.mainTabs.querySelectorAll('.tab-btn').forEach((btn) => {
+      btn.addEventListener('click', () => showScreen(btn.dataset.tab));
+    });
+
     el.backHomeBtn.addEventListener('click', () => showScreen('select'));
     el.chooseAnotherBtn.addEventListener('click', () => showScreen('select'));
     el.retrySameBtn.addEventListener('click', () => {
-      if (state.persona) startChat(state.persona);
+      if (state.persona) startChat(state.persona, state.isBlitz);
     });
 
     el.soundBtn.addEventListener('click', () => {
@@ -253,17 +457,123 @@
       el.soundBtn.textContent = window.rizzSound.muted ? '🔇' : '🔊';
     });
 
-    el.achievementsBtn.addEventListener('click', () => {
-      renderAchievementsModal();
-      el.achModal.classList.remove('hidden');
-    });
-    el.closeAchBtn.addEventListener('click', () => el.achModal.classList.add('hidden'));
-
     el.randomMatchBtn.addEventListener('click', () => {
       const un = window.PERSONAS.filter((p) => !state.progress.conquered.includes(p.id));
       const pool = un.length > 0 ? un : window.PERSONAS;
       const pick = pool[Math.floor(Math.random() * pool.length)];
-      startChat(pick);
+      startChat(pick, false);
+    });
+
+    // My Profile Form
+    el.myAvatarPicker.querySelectorAll('.av-opt').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        el.myAvatarPicker.querySelectorAll('.av-opt').forEach((b) => b.classList.remove('active'));
+        btn.classList.add('active');
+        state.userProfile.avatar = btn.dataset.av;
+      });
+    });
+
+    el.myProfileForm.addEventListener('submit', (e) => {
+      e.preventDefault();
+      state.userProfile.name = el.myNameInput.value.trim() || 'Парень';
+      state.userProfile.age = Number(el.myAgeInput.value) || 20;
+      state.userProfile.work = el.myWorkInput.value.trim() || 'Занимаюсь своими проектами';
+      state.userProfile.bio = el.myBioInput.value.trim() || '';
+      state.userProfile.interests = el.myInterestsInput.value
+        .split(',')
+        .map((s) => s.trim().toLowerCase())
+        .filter(Boolean);
+      state.userProfile.style = el.myStyleSelect.value;
+      localStorage.setItem(USER_PROFILE_KEY, JSON.stringify(state.userProfile));
+      window.rizzSound.combo();
+      showToast('😎 Твоя анкета сохранена! Девушки теперь видят её.');
+    });
+
+    // Blitz buttons
+    document.querySelectorAll('[data-blitz]').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        const diff = btn.dataset.blitz;
+        const pool = window.PERSONAS.filter((p) => p.difficulty === diff);
+        const pick = pool[Math.floor(Math.random() * pool.length)] || window.PERSONAS[0];
+        startChat(pick, true);
+      });
+    });
+
+    // Opener Trainer
+    el.nextOpenerCaseBtn.addEventListener('click', () => {
+      state.openerIdx++;
+      renderOpenerCase();
+    });
+
+    el.openerTestForm.addEventListener('submit', (e) => {
+      e.preventDefault();
+      const text = el.openerTestInput.value.trim();
+      if (!text) return;
+      const c = OPENER_CASES[state.openerIdx % OPENER_CASES.length];
+      const fakePersona = {
+        name: c.title,
+        difficulty: 'Средняя',
+        interests: c.keywords.slice(0, 4),
+        interestKeywords: c.keywords
+      };
+      const res = window.RizzEvaluator.analyzeMessage(text, fakePersona, []);
+      const avg = Math.round(
+        ((res.scores.originality + res.scores.confidence + res.scores.engagement + res.scores.tact + res.scores.vibeMatch) / 5) * 10
+      );
+      el.openerResultBox.classList.remove('hidden');
+      el.openerResultBox.innerHTML = `
+        <div style="font-size:20px;font-weight:800;margin-bottom:8px;">Оценка захода: <span style="color:var(--pink)">${avg}/100</span></div>
+        <div style="color:var(--text-muted);margin-bottom:10px;">${res.notes.join(' • ')}</div>
+        <div class="breakdown-chips">
+          <span class="b-chip">✨ Ориг: <strong>${res.scores.originality}</strong></span>
+          <span class="b-chip">🦁 Уверен: <strong>${res.scores.confidence}</strong></span>
+          <span class="b-chip">💬 Вовлеч: <strong>${res.scores.engagement}</strong></span>
+          <span class="b-chip">🛡️ Такт: <strong>${res.scores.tact}</strong></span>
+        </div>
+      `;
+    });
+
+    // Clear history
+    el.clearHistoryBtn.addEventListener('click', () => {
+      state.progress.logs = [];
+      saveProgress();
+      renderHistoryTab();
+    });
+
+    // Custom Girl Modal
+    el.openCustomGirlBtn.addEventListener('click', () => el.customGirlModal.classList.remove('hidden'));
+    el.closeCustomGirlBtn.addEventListener('click', () => el.customGirlModal.classList.add('hidden'));
+    el.saveCustomGirlBtn.addEventListener('click', () => {
+      const name = el.cgNameInput.value.trim();
+      const diff = el.cgDiffInput.value;
+      const bio = el.cgBioInput.value.trim() || 'Любит интересное общение и чувство юмора.';
+      const ints = el.cgInterestsInput.value
+        .split(',')
+        .map((s) => s.trim().toLowerCase())
+        .filter(Boolean);
+      if (!name) return;
+
+      const newGirl = {
+        id: `custom_${Date.now()}`,
+        name,
+        avatar: '✨',
+        difficulty: diff,
+        tagline: 'Своя анкета',
+        bio,
+        interests: ints.length ? ints : ['музыка', 'кофе'],
+        workOrStudy: 'занимаюсь своими делами и увлечениями',
+        favMusic: 'люблю классную музыку под настроение',
+        idealDate: 'уютная встреча в классном месте',
+        interestKeywords: ints.length ? ints : ['музык', 'кофе'],
+        startSympathy: diff === 'Лёгкая' ? 42 : diff === 'Хардкор' ? 24 : 35,
+        openingMsg: `Привет! Я ${name.split(',')[0]}. Удиви меня своим первым сообщением ✨`
+      };
+      state.customGirls.unshift(newGirl);
+      localStorage.setItem(CUSTOM_GIRLS_KEY, JSON.stringify(state.customGirls));
+      window.PERSONAS.unshift(newGirl);
+      el.customGirlModal.classList.add('hidden');
+      renderPersonas();
+      showToast(`✨ Добавлена: ${name}`);
     });
 
     el.difficultyFilters.querySelectorAll('.filter-pill').forEach((btn) => {
@@ -280,9 +590,17 @@
       renderPersonas();
     });
 
+    // Stickers
+    el.stickerBtn.addEventListener('click', () => {
+      el.wingmanDrawer.classList.add('hidden');
+      el.stickerDrawer.classList.toggle('hidden');
+    });
+    el.closeStickerBtn.addEventListener('click', () => el.stickerDrawer.classList.add('hidden'));
+
     // Wingman
     el.wingmanBtn.addEventListener('click', () => {
       if (state.wingmanLeft <= 0 || state.ended || state.isTyping) return;
+      el.stickerDrawer.classList.add('hidden');
       const suggestions = window.RizzEvaluator.getWingmanSuggestions(
         state.persona,
         state.turn,
@@ -356,13 +674,57 @@
       if (!text) return;
       el.messageInput.value = '';
       el.wingmanDrawer.classList.add('hidden');
+      el.stickerDrawer.classList.add('hidden');
       handleUserMessage(text);
     });
   }
 
-  function startChat(persona) {
+  function stopBlitzTimer() {
+    if (state.blitzTimerId) {
+      clearInterval(state.blitzTimerId);
+      state.blitzTimerId = null;
+    }
+    el.blitzTimerBadge.classList.add('hidden');
+  }
+
+  function startBlitzTurnTimer() {
+    stopBlitzTimer();
+    if (!state.isBlitz || state.ended) return;
+    state.blitzSeconds = state.persona.difficulty === 'Хардкор' ? 15 : 18;
+    el.blitzTimerBadge.textContent = `⏱️ ${state.blitzSeconds}с`;
+    el.blitzTimerBadge.classList.remove('hidden');
+
+    state.blitzTimerId = setInterval(() => {
+      state.blitzSeconds--;
+      el.blitzTimerBadge.textContent = `⏱️ ${state.blitzSeconds}с`;
+      if (state.blitzSeconds <= 0) {
+        stopBlitzTimer();
+        state.sympathy = Math.max(0, state.sympathy - 10);
+        updateSympathyUI();
+        appendBotMessage('Эй, ты уснул там? Я не люблю ждать долго ⏳ (-10% симпатии)');
+        if (state.sympathy <= 10) {
+          state.ended = true;
+          el.messageInput.disabled = true;
+          setTimeout(() => finishAndShowReport(), 1000);
+        } else {
+          startBlitzTurnTimer();
+        }
+      }
+    }, 1000);
+  }
+
+  function startChat(persona, isBlitz = false) {
     state.persona = persona;
-    state.sympathy = persona.startSympathy;
+    state.isBlitz = isBlitz;
+
+    // Check match bonus with User's own Anketa
+    const userInts = (state.userProfile.interests || []).map((i) => i.toLowerCase());
+    const shared = persona.interests.filter((pi) =>
+      userInts.some((ui) => pi.toLowerCase().includes(ui) || ui.includes(pi.toLowerCase()))
+    );
+    const matchBonus = shared.length > 0 ? Math.min(10, shared.length * 5) : 0;
+
+    state.sympathy = Math.min(90, persona.startSympathy + matchBonus);
     state.turn = 0;
     state.combo = 0;
     state.wingmanLeft = 2;
@@ -381,13 +743,21 @@
       .map((i) => `<span class="tag">#${i}</span>`)
       .join('');
 
+    if (matchBonus > 0) {
+      el.myMatchBonusBox.textContent = `✨ Совпадение с твоей анкетой (${state.userProfile.name}): +${matchBonus}% к старту (${shared.join(', ')})!`;
+      el.myMatchBonusBox.classList.remove('hidden');
+    } else {
+      el.myMatchBonusBox.classList.add('hidden');
+    }
+
     el.mhAvatar.textContent = persona.avatar;
-    el.mhName.textContent = persona.name.split(',')[0];
+    el.mhName.textContent = persona.name.split(',')[0] + (isBlitz ? ' ⚡ БЛИЦ' : '');
     el.mhStatus.textContent = 'онлайн';
     el.turnMax.textContent = MAX_TURNS;
     el.wingmanCharges.textContent = state.wingmanLeft;
     el.wingmanBtn.disabled = false;
     el.wingmanDrawer.classList.add('hidden');
+    el.stickerDrawer.classList.add('hidden');
 
     el.chatFeed.innerHTML = '';
     el.messageInput.disabled = false;
@@ -397,13 +767,14 @@
     state.history.push({ role: 'bot', text: persona.openingMsg });
     appendBotMessage(persona.openingMsg);
     showScreen('chat');
+    if (isBlitz) startBlitzTurnTimer();
   }
 
   async function handleUserMessage(text) {
+    stopBlitzTimer();
     state.turn++;
     const analysis = window.RizzEvaluator.analyzeMessage(text, state.persona, state.history);
 
-    // Combo system
     if (analysis.sympathyDelta >= 8) {
       state.combo++;
       if (state.combo >= 2) {
@@ -442,7 +813,7 @@
       state.turn,
       MAX_TURNS,
       state.usedReplies,
-      { lastTopic: state.lastTopic }
+      { lastTopic: state.lastTopic, userProfile: state.userProfile }
     );
     state.lastTopic = nluResult.nextTopic || null;
 
@@ -461,7 +832,7 @@
         );
       } catch (_) {}
     } else {
-      await new Promise((r) => setTimeout(r, 600 + Math.random() * 450));
+      await new Promise((r) => setTimeout(r, 550 + Math.random() * 400));
     }
 
     typingEl.remove();
@@ -475,7 +846,9 @@
     if (forceEnd) {
       state.ended = true;
       el.messageInput.disabled = true;
-      setTimeout(() => finishAndShowReport(), 1400);
+      setTimeout(() => finishAndShowReport(), 1300);
+    } else if (state.isBlitz) {
+      startBlitzTurnTimer();
     }
   }
 
@@ -538,6 +911,7 @@
   }
 
   function finishAndShowReport() {
+    stopBlitzTimer();
     const report = window.RizzEvaluator.buildFinalReport(
       state.persona,
       state.messageLogs,
@@ -545,10 +919,25 @@
     );
     state.lastReport = report;
 
-    // Save progress & check achievements
     const prevBest = state.progress.bestScores[state.persona.id] || 0;
     if (report.totalScore > prevBest) {
       state.progress.bestScores[state.persona.id] = report.totalScore;
+    }
+
+    // Save to history logs
+    if (state.messageLogs.length > 0) {
+      state.progress.logs = state.progress.logs || [];
+      state.progress.logs.unshift({
+        name: state.persona.name,
+        avatar: state.persona.avatar,
+        score: report.totalScore,
+        rank: report.rank.letter,
+        verdict: report.verdictType,
+        badge: report.verdictBadge,
+        isBlitz: state.isBlitz,
+        date: new Date().toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' })
+      });
+      if (state.progress.logs.length > 50) state.progress.logs.length = 50;
     }
 
     if (report.verdictType === 'win') {
@@ -557,6 +946,7 @@
         state.progress.conquered.push(state.persona.id);
       }
       unlockAchievement('first_win');
+      if (state.isBlitz) unlockAchievement('blitz_win');
       if (state.persona.difficulty === 'Хардкор') unlockAchievement('hardcore_win');
       if (state.progress.conquered.length >= 5) unlockAchievement('collector_5');
       if (state.progress.conquered.length >= 12) unlockAchievement('collector_12');
