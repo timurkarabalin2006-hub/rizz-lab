@@ -1565,3 +1565,44 @@ body {
     grid-template-columns: 1fr;
   }
 }
+
+/* RIZZ LAB 4.1: CONFETTI & DAILY CHALLENGE BANNER */
+.confetti-canvas {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 70;
+}
+
+.daily-banner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+  background: linear-gradient(135deg, rgba(255, 62, 138, 0.16), rgba(124, 77, 255, 0.2));
+  border: 1px solid rgba(255, 62, 138, 0.4);
+  border-radius: 18px;
+  padding: 16px 20px;
+  margin-bottom: 20px;
+}
+
+.daily-tag {
+  display: inline-block;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 1px;
+  color: #fde047;
+  margin-bottom: 4px;
+}
+
+.daily-title {
+  font-weight: 700;
+  font-size: 15px;
+  color: #fff;
+}
+
+.daily-banner.done {
+  border-color: rgba(46, 204, 113, 0.55);
+  background: linear-gradient(135deg, rgba(46, 204, 113, 0.14), rgba(34, 211, 238, 0.12));
+}

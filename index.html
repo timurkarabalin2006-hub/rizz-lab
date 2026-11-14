@@ -11,6 +11,7 @@
 </head>
 <body>
   <div class="ambient-glow" aria-hidden="true"></div>
+  <canvas id="confettiCanvas" class="confetti-canvas" aria-hidden="true"></canvas>
   <div id="toastContainer" class="toast-container"></div>
 
   <header class="topbar">
@@ -52,6 +53,14 @@
           <button id="randomMatchBtn" class="btn-primary btn-roulette">🎲 Случайный матч</button>
           <button id="openCustomGirlBtn" class="btn-secondary">➕ Добавить свою девушку</button>
         </div>
+      </div>
+
+      <div class="daily-banner" id="dailyBanner">
+        <div class="daily-left">
+          <span class="daily-tag">🎯 ВЫЗОВ ДНЯ</span>
+          <div class="daily-title" id="dailyTitle">Закадри Полину, 18 (Хардкор) и набери 75+ Индекса Харизмы!</div>
+        </div>
+        <button id="dailyAcceptBtn" class="btn-primary">🔥 Принять вызов</button>
       </div>
 
       <div class="filter-bar">
@@ -355,7 +364,8 @@
         <div id="highlightsList" class="highlights-list"></div>
 
         <div class="report-actions">
-          <button id="retrySameBtn" class="btn-primary">🔄 Попробовать ещё раз</button>
+          <button id="continueChatBtn" class="btn-primary hidden">💬 Продолжить чат (Фриплей)</button>
+          <button id="retrySameBtn" class="btn-secondary">🔄 Попробовать ещё раз</button>
           <button id="copyReportBtn" class="btn-secondary">📋 Скопировать отчёт</button>
           <button id="chooseAnotherBtn" class="btn-secondary">💃 К другим девушкам</button>
         </div>

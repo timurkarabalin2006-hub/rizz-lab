@@ -58,6 +58,7 @@
     combo: 0,
     wingmanLeft: 2,
     isBlitz: false,
+    freeplay: false,
     blitzSeconds: 18,
     blitzTimerId: null,
     history: [],
@@ -102,7 +103,11 @@
 
   const el = {
     mainTabs: document.getElementById('mainTabs'),
+    confettiCanvas: document.getElementById('confettiCanvas'),
     toastContainer: document.getElementById('toastContainer'),
+    dailyBanner: document.getElementById('dailyBanner'),
+    dailyTitle: document.getElementById('dailyTitle'),
+    dailyAcceptBtn: document.getElementById('dailyAcceptBtn'),
     playerRankText: document.getElementById('playerRankText'),
     conqueredCount: document.getElementById('conqueredCount'),
     soundBtn: document.getElementById('soundBtn'),
@@ -205,6 +210,7 @@
     mainAdviceBox: document.getElementById('mainAdviceBox'),
     criteriaList: document.getElementById('criteriaList'),
     highlightsList: document.getElementById('highlightsList'),
+    continueChatBtn: document.getElementById('continueChatBtn'),
     retrySameBtn: document.getElementById('retrySameBtn'),
     copyReportBtn: document.getElementById('copyReportBtn'),
     chooseAnotherBtn: document.getElementById('chooseAnotherBtn')
@@ -261,9 +267,24 @@
     }
   }
 
+  function updateDailyBanner() {
+    const polinaBest = state.progress.bestScores['polina_18'] || 0;
+    const polinaWin = state.progress.conquered.includes('polina_18');
+    if (polinaWin && polinaBest >= 75) {
+      el.dailyBanner.classList.add('done');
+      el.dailyTitle.textContent = `✅ Вызов дня выполнен! Полина, 18 покорена (${polinaBest}/100)`;
+      el.dailyAcceptBtn.textContent = '🔄 Сыграть ещё';
+    } else {
+      el.dailyBanner.classList.remove('done');
+      el.dailyTitle.textContent = 'Закадри Полину, 18 (Хардкор) и набери 75+ Индекса Харизмы!';
+      el.dailyAcceptBtn.textContent = '🔥 Принять вызов';
+    }
+  }
+
   function init() {
     updateAiBtnLabel();
     updateHeaderStats();
+    updateDailyBanner();
     populateMyProfileForm();
     renderPersonas();
     renderOpenerCase();
@@ -288,6 +309,7 @@
 
     if (name === 'select') {
       updateHeaderStats();
+      updateDailyBanner();
       renderPersonas();
     } else if (name === 'history') {
       renderHistoryTab();
@@ -450,6 +472,22 @@
     el.chooseAnotherBtn.addEventListener('click', () => showScreen('select'));
     el.retrySameBtn.addEventListener('click', () => {
       if (state.persona) startChat(state.persona, state.isBlitz);
+    });
+
+    el.dailyAcceptBtn.addEventListener('click', () => {
+      const target = window.PERSONAS.find((p) => p.id === 'polina_18') || window.PERSONAS[0];
+      startChat(target, false);
+    });
+
+    el.continueChatBtn.addEventListener('click', () => {
+      if (!state.persona) return;
+      state.freeplay = true;
+      state.ended = false;
+      el.messageInput.disabled = false;
+      el.turnMax.textContent = '∞';
+      showScreen('chat');
+      appendBotMessage('Режим свободного общения включён — болтаем без лимита ходов 😉');
+      el.messageInput.focus();
     });
 
     el.soundBtn.addEventListener('click', () => {
@@ -716,6 +754,7 @@
   function startChat(persona, isBlitz = false) {
     state.persona = persona;
     state.isBlitz = isBlitz;
+    state.freeplay = false;
 
     // Check match bonus with User's own Anketa
     const userInts = (state.userProfile.interests || []).map((i) => i.toLowerCase());
@@ -805,20 +844,30 @@
     el.mhStatus.textContent = 'печатает...';
     const typingEl = appendTypingIndicator();
 
+    const effectiveMaxTurns = state.freeplay ? 999 : MAX_TURNS;
     const nluResult = window.RizzEvaluator.generateSmartReply(
       text,
       state.persona,
       analysis,
       state.sympathy,
       state.turn,
-      MAX_TURNS,
+      effectiveMaxTurns,
       state.usedReplies,
       { lastTopic: state.lastTopic, userProfile: state.userProfile }
     );
     state.lastTopic = nluResult.nextTopic || null;
 
     let replyText = nluResult.text;
-    const forceEnd = nluResult.forceEnd;
+    const forceEnd = state.freeplay ? null : nluResult.forceEnd;
+
+    // Random live twist on turn 3
+    if (!forceEnd && !state.freeplay && state.turn === 3 && Math.random() < 0.4 && state.persona.id !== 'polina_18') {
+      const twists = [
+        ' Кстати, ко мне тут подруга заглянула, спрашивает: «Он реально смешной или просто старается?» 😂',
+        ' Ой, у меня тут мини-блиц: назови 1 вещь, которую в тебе сразу замечают люди!'
+      ];
+      replyText += twists[Math.floor(Math.random() * twists.length)];
+    }
 
     if (state.aiConfig && state.aiConfig.apiKey && !forceEnd) {
       try {
@@ -942,6 +991,7 @@
 
     if (report.verdictType === 'win') {
       window.rizzSound.win();
+      launchConfetti(85);
       if (!state.progress.conquered.includes(state.persona.id)) {
         state.progress.conquered.push(state.persona.id);
       }
@@ -954,9 +1004,12 @@
       window.rizzSound.fail();
     }
 
+    el.continueChatBtn.classList.toggle('hidden', report.verdictType === 'fail');
+
     if (report.totalScore >= 88) unlockAchievement('s_rank');
     saveProgress();
     updateHeaderStats();
+    updateDailyBanner();
 
     el.verdictEmoji.textContent = report.verdictEmoji;
     el.verdictBadge.textContent = report.verdictBadge;
@@ -1021,6 +1074,45 @@
     });
 
     showScreen('report');
+  }
+
+  function launchConfetti(count = 75) {
+    const canvas = el.confettiCanvas;
+    if (!canvas) return;
+    const ctx = canvas.getContext('2d');
+    canvas.width = window.innerWidth;
+    canvas.height = window.innerHeight;
+    const colors = ['#ff3e8a', '#7c4dff', '#22d3ee', '#facc15', '#2ecc71'];
+    const particles = Array.from({ length: count }, () => ({
+      x: Math.random() * canvas.width,
+      y: -20 - Math.random() * 120,
+      vx: (Math.random() - 0.5) * 6,
+      vy: 3 + Math.random() * 5,
+      size: 6 + Math.random() * 6,
+      color: colors[Math.floor(Math.random() * colors.length)],
+      rot: Math.random() * Math.PI * 2,
+      vRot: (Math.random() - 0.5) * 0.2
+    }));
+
+    let frames = 0;
+    function frame() {
+      frames++;
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      particles.forEach((p) => {
+        p.x += p.vx;
+        p.y += p.vy;
+        p.rot += p.vRot;
+        ctx.save();
+        ctx.translate(p.x, p.y);
+        ctx.rotate(p.rot);
+        ctx.fillStyle = p.color;
+        ctx.fillRect(-p.size / 2, -p.size / 2, p.size, p.size * 0.6);
+        ctx.restore();
+      });
+      if (frames < 120) requestAnimationFrame(frame);
+      else ctx.clearRect(0, 0, canvas.width, canvas.height);
+    }
+    requestAnimationFrame(frame);
   }
 
   function escapeHtml(str) {
